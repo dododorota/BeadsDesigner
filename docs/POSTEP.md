@@ -7,11 +7,63 @@ Aktualizujemy go przy każdym etapie pracy (checkpoint), najnowsze wpisy są na 
 
 ---
 
+## Handover — gdzie skończyliśmy (2026-10-11)
+
+**Stan kodu:** etap 1 gotowy i wypchnięty na `main` (commit `5dbbe68`): katalog koralików, obsługa
+dotyku i Apple Pencil, instalacja na ekranie początkowym, praca offline. 14 testów przechodzi.
+Lokalna gałąź nazywa się teraz `main` i śledzi `origin/main` — zwykły `git push` działa.
+
+**Rozmowa urwała się na pytaniu: jak ma działać aplikacja na iPadzie i gdzie zapisywać projekty.**
+
+Jak jest teraz: jeden projekt naraz, autozapis w pamięci przeglądarki (`localStorage`), kopia ręczna
+przez „Zapisz plik” (`.beads.json`). Dane są osobne dla Safari i dla ikony z ekranu początkowego
+i znikają po usunięciu ikony / wyczyszczeniu danych witryny.
+
+### Decyzje do podjęcia (po stronie Doroty)
+
+1. **Droga instalacji na iPadzie** — jedna z:
+   | Opcja | Koszt | Wygoda | Zapis projektów |
+   | --- | --- | --- | --- |
+   | A. Aplikacja z ekranu początkowego (już działa) | 0 zł | Safari tylko raz do instalacji; własna ikona, pełny ekran, offline | pamięć aplikacji + eksport do pliku |
+   | B. SideStore (sideload, darmowe Apple ID) | 0 zł | komputer z Windowsem raz przy konfiguracji; potem odświeżanie co 7 dni na iPadzie | prawdziwe pliki w *Pliki → Na moim iPadzie → Koraliki* |
+   | C. AltStore (sideload, darmowe Apple ID) | 0 zł | odświeżanie co 7 dni z komputera z AltServerem w tej samej sieci Wi-Fi | jak B |
+   | D. TrollStore | 0 zł | na stałe, bez odświeżania — **tylko starsze iPadOS (do 17.0)** | jak B |
+   | E. Apple Developer + TestFlight | 99 USD/rok | bez odświeżania, wersje ważne 90 dni; potrzebny Mac lub budowanie w chmurze | jak B, plus możliwy iCloud |
+2. **Sprawdzić wersję iPadOS:** Ustawienia → Ogólne → To urządzenie → Wersja iPadOS (decyduje, czy wchodzi w grę D).
+3. **Włączyć GitHub Pages** (potrzebne dla opcji A i jako zapas): repo jest/ma być publiczne;
+   *Settings → Pages → Deploy from a branch → `main` / `(root)`*. Adres: https://dododorota.github.io/BeadsDesigner/
+4. **Przetestować etap 1 na prawdziwym iPadzie** — lista niżej w sekcji „Do sprawdzenia na prawdziwym iPadzie”.
+
+Ustalenia z rozmowy: sam „Tryb dewelopera” nie wystarcza do sideloadu — aplikacja i tak musi być
+podpisana certyfikatem Apple (darmowe Apple ID = 7 dni) i wgrana narzędziem (SideStore/AltStore/Xcode);
+przełącznik pojawia się w Ustawieniach dopiero po wgraniu pierwszej takiej aplikacji.
+Nie używamy płatnych „serwisów do podpisywania” ani cudzych certyfikatów firmowych.
+
+### Od czego zaczynamy po decyzji
+
+Pierwszy krok jest ten sam niezależnie od wybranej drogi:
+
+1. **Etap 1b — „Moje projekty” i bezpieczny zapis** (⏳, przed etapem 2):
+   - lista wielu projektów z miniaturkami: otwórz, duplikuj, usuń, zmień nazwę; „Nowy” nie kasuje poprzedniego;
+   - warstwa zapisu z dwiema implementacjami: przeglądarka (IndexedDB zamiast `localStorage`) i aplikacja natywna (pliki w Documents przez Capacitor Filesystem), ten sam interfejs;
+   - zapis od razu przy schowaniu aplikacji (`pagehide` / `visibilitychange`), zamiast tylko po 0,4 s;
+   - prośba o trwałą pamięć (`navigator.storage.persist()`);
+   - „Eksportuj wszystkie projekty” do jednego pliku + przypomnienie o kopii.
+2. **Jeśli wybrana droga B/C/D/E — etap 1c, aplikacja natywna:** opakowanie w Capacitor, budowanie
+   niepodpisanego `.ipa` w GitHub Actions (macOS runner, darmowy dla publicznego repo), instrukcja
+   instalacji krok po kroku dla wybranego narzędzia. Od Doroty: Apple ID, komputer z Windowsem
+   (iTunes + iCloud z Microsoft Store) przy pierwszej konfiguracji.
+3. **Potem etap 2 — ściegi płaskie i rurkowe** (szczegóły w planie niżej).
+
+---
+
 ## Plan
 
 | Etap | Co | Stan |
 | --- | --- | --- |
 | 1 | Katalog koralików (kształty i rozmiary Miyuki/Toho w palecie) + obsługa iPada | ✅ (czeka na sprawdzenie na prawdziwym iPadzie) |
+| 1b | „Moje projekty”: wiele projektów, zapis w IndexedDB / plikach, zapis przy zamykaniu, eksport wszystkiego | ⏳ następny |
+| 1c | Aplikacja natywna na iPada (Capacitor + `.ipa` z GitHub Actions), jeśli wybrana droga B–E | ⏳ czeka na decyzję |
 | 2 | Ściegi płaskie i rurkowe na wspólnym „silniku ściegów”: peyote, brick, herringbone (proste i skręcone), ladder, square/krosno, CRAW, PRAW-3…6; obecny wężyk szydełkowy też tu trafi | ⏳ |
 | 3 | Naszyjnik z motywami: kwiatki (daisy chain), pętelki, perły i koraliki ozdobne między zwykłymi | ⏳ |
 | 4 | Figurki w technice japońskiej (na krzyż): oczka z numerami, koraliki na krawędziach, instrukcja krok po kroku | ⏳ |
@@ -98,6 +150,11 @@ Wymagany iPadOS 16.4 lub nowszy (import map w Safari).
 ---
 
 ## Dziennik
+
+### 2026-10-11 — Rozmowa o instalacji i zapisie (bez zmian w kodzie)
+- Omówione drogi instalacji: ekran początkowy, SideStore, AltStore, TrollStore, TestFlight (tabela w Handover).
+- Ustalone, że zapis projektów trzeba wzmocnić niezależnie od drogi → nowy etap 1b „Moje projekty”.
+- Czekamy na decyzję o drodze instalacji i wersję iPadOS.
 
 ### 2026-10-10 — Etap 1: katalog koralików i iPad
 - Katalog 36 typów koralików w 10 kształtach (Miyuki, Toho, rurki, tile, bicone, perełki); wybór w palecie.
