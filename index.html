@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Beads Designer</title>
+<meta name="description" content="Projektowanie wzorów z koralików: naszyjniki, wężyki szydełkowe i figurki 3D z podglądem na żywo.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Figtree:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="css/style.css">
+<script type="importmap">
+{ "imports": { "three": "./vendor/three.module.min.js", "three/addons/": "./vendor/" } }
+</script>
+</head>
+<body>
+<!--APP-->
+<div class="app">
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-beads" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span>
+      <span class="brand-name">Beads Designer</span>
+    </div>
+    <label class="project-name">
+      <span class="sr-only">Nazwa projektu</span>
+      <input id="projectName" type="text" maxlength="80" spellcheck="false">
+    </label>
+    <div class="topbar-actions">
+      <button id="btnNew" class="btn" type="button">Nowy</button>
+      <button id="btnOpen" class="btn" type="button">Otwórz</button>
+      <button id="btnSave" class="btn" type="button" data-download>Zapisz plik</button>
+      <input id="fileInput" type="file" accept=".json,application/json" hidden>
+      <span id="saveState" class="save-state" aria-live="polite"></span>
+    </div>
+  </header>
+
+  <aside class="sidebar">
+    <section class="panel">
+      <h2 class="panel-title">Co projektujesz</h2>
+      <div class="mode-switch" role="radiogroup" aria-label="Rodzaj projektu">
+        <button type="button" role="radio" data-mode="strand" id="modeStrand">
+          <svg viewBox="0 0 40 24" aria-hidden="true"><path d="M3 3 Q20 30 37 3" fill="none" stroke="currentColor" stroke-width="1.5"/><g fill="currentColor"><circle cx="8" cy="10" r="2.4"/><circle cx="14" cy="14.5" r="2.4"/><circle cx="20" cy="16" r="2.4"/><circle cx="26" cy="14.5" r="2.4"/><circle cx="32" cy="10" r="2.4"/></g></svg>
+          <span>Naszyjnik</span>
+        </button>
+        <button type="button" role="radio" data-mode="tube" id="modeTube">
+          <svg viewBox="0 0 40 24" aria-hidden="true"><g fill="currentColor"><circle cx="8" cy="6" r="2.6"/><circle cx="14" cy="6" r="2.6"/><circle cx="20" cy="6" r="2.6"/><circle cx="26" cy="6" r="2.6"/><circle cx="32" cy="6" r="2.6"/><circle cx="11" cy="12" r="2.6"/><circle cx="17" cy="12" r="2.6"/><circle cx="23" cy="12" r="2.6"/><circle cx="29" cy="12" r="2.6"/><circle cx="8" cy="18" r="2.6"/><circle cx="14" cy="18" r="2.6"/><circle cx="20" cy="18" r="2.6"/><circle cx="26" cy="18" r="2.6"/><circle cx="32" cy="18" r="2.6"/></g></svg>
+          <span>Wężyk</span>
+        </button>
+        <button type="button" role="radio" data-mode="figure" id="modeFigure">
+          <svg viewBox="0 0 40 24" aria-hidden="true"><g fill="currentColor"><circle cx="20" cy="5" r="2.6"/><circle cx="15" cy="10.5" r="2.6"/><circle cx="20.5" cy="10.5" r="2.6"/><circle cx="26" cy="10.5" r="2.6"/><circle cx="12" cy="17" r="2.6"/><circle cx="17.5" cy="17" r="2.6"/><circle cx="23" cy="17" r="2.6"/><circle cx="28.5" cy="17" r="2.6"/></g></svg>
+          <span>Figurka 3D</span>
+        </button>
+      </div>
+      <p id="modeHint" class="hint"></p>
+    </section>
+
+    <section class="panel" data-for="strand">
+      <h2 class="panel-title">Sznurek</h2>
+      <div class="field-row">
+        <label class="field"><span>Koralików</span><input id="strandCount" type="number" min="10" max="2000" step="1"></label>
+        <label class="field"><span>W rzędzie schematu</span><input id="strandWrap" type="number" min="5" max="80" step="1"></label>
+      </div>
+      <label class="check"><input id="strandSym" type="checkbox"> Symetria od środka</label>
+      <label class="check"><input id="strandPendant" type="checkbox"> Zawieszka: figurka 3D na środku</label>
+      <div class="inline-action">
+        <span>Powiel pierwsze</span>
+        <input id="strandRepeatLen" type="number" min="1" value="15" aria-label="Długość powtarzanego fragmentu">
+        <span>koralików</span>
+        <button id="strandRepeat" class="btn btn-small" type="button">Powiel</button>
+      </div>
+      <button id="strandMirror" class="btn btn-small btn-wide" type="button">Skopiuj lewą połowę na prawą</button>
+    </section>
+
+    <section class="panel" data-for="tube">
+      <h2 class="panel-title">Wężyk</h2>
+      <div class="field-row">
+        <label class="field"><span>Na obwodzie</span><input id="tubeAround" type="number" min="3" max="16" step="1"></label>
+        <label class="field"><span>Rzędów</span><input id="tubeRows" type="number" min="2" max="400" step="1"></label>
+      </div>
+      <div class="inline-action">
+        <span>Powiel pierwsze</span>
+        <input id="tubeRepeatLen" type="number" min="1" value="6" aria-label="Liczba powtarzanych rzędów">
+        <span>rzędów</span>
+        <button id="tubeRepeat" class="btn btn-small" type="button">Powiel</button>
+      </div>
+    </section>
+
+    <section class="panel" data-for="figure">
+      <h2 class="panel-title">Figurka</h2>
+      <div class="field-row three">
+        <label class="field"><span>Szerokość</span><input id="figW" type="number" min="2" max="32" step="1"></label>
+        <label class="field"><span>Głębokość</span><input id="figD" type="number" min="2" max="32" step="1"></label>
+        <label class="field"><span>Warstwy</span><input id="figH" type="number" min="1" max="40" step="1"></label>
+      </div>
+      <label class="check"><input id="figMirror" type="checkbox"> Odbicie lewo–prawo</label>
+      <div class="inline-action">
+        <select id="shapeKind" aria-label="Bryła">
+          <option value="sphere">Kula / jajo</option>
+          <option value="cylinder">Walec</option>
+          <option value="cone">Stożek</option>
+          <option value="box">Prostopadłościan</option>
+        </select>
+        <button id="shapeAdd" class="btn btn-small" type="button">Dodaj bryłę</button>
+      </div>
+      <button id="figHollow" class="btn btn-small btn-wide" type="button">Wydrąż środek (zostaw powierzchnię)</button>
+    </section>
+
+    <section class="panel">
+      <h2 class="panel-title">Koraliki</h2>
+      <label class="field"><span>Rozmiar</span>
+        <select id="beadSize">
+          <option value="15/0">15/0 · 1,5 mm</option>
+          <option value="11/0">11/0 · 2 mm</option>
+          <option value="8/0">8/0 · 3 mm</option>
+          <option value="6/0">6/0 · 4 mm</option>
+        </select>
+      </label>
+      <div class="palette-head">
+        <h3 class="panel-subtitle">Kolory</h3>
+        <button id="addColor" class="btn btn-small" type="button">+ Dodaj kolor</button>
+      </div>
+      <ul id="palette" class="palette"></ul>
+    </section>
+  </aside>
+
+  <main class="editor">
+    <div class="toolbar" role="toolbar" aria-label="Narzędzia">
+      <div class="tool-group">
+        <button type="button" class="tool" data-tool="pencil" title="Ołówek (B)" aria-label="Ołówek">
+          <svg viewBox="0 0 24 24"><path d="M4 20l1.2-4.4L15.6 5.2a2 2 0 012.8 0l.4.4a2 2 0 010 2.8L8.4 18.8z M13.5 7.3l3.2 3.2" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+        </button>
+        <button type="button" class="tool" data-tool="fill" title="Wypełnij (G)" aria-label="Wypełnij">
+          <svg viewBox="0 0 24 24"><path d="M11 4l7 7-6.5 6.5a2 2 0 01-2.8 0L4.5 13.3a2 2 0 010-2.8z M8 7.5l7 7 M19.5 15.5s1.8 2.2 1.8 3.3a1.8 1.8 0 01-3.6 0c0-1.1 1.8-3.3 1.8-3.3z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+        </button>
+        <button type="button" class="tool" data-tool="picker" title="Pipeta (I) — albo prawy przycisk myszy" aria-label="Pipeta">
+          <svg viewBox="0 0 24 24"><path d="M14.5 6.5l3 3M16 4.5a2.1 2.1 0 013 3l-2 2-3-3zM14 8l-8.5 8.5L5 19l2.5-.5L16 10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+        </button>
+        <button type="button" class="tool" data-tool="eraser" data-for="figure" title="Gumka (E)" aria-label="Gumka">
+          <svg viewBox="0 0 24 24"><path d="M8.5 19h11M5.2 14.6l8.4-8.4a2 2 0 012.8 0l2.4 2.4a2 2 0 010 2.8L11 19H8.4l-3.2-3.2a.8.8 0 010-1.2zM9.5 10.3l5.2 5.2" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+        </button>
+      </div>
+      <div class="current-color" title="Aktualny kolor">
+        <span id="currentSwatch" class="swatch"></span>
+        <span id="currentName"></span>
+      </div>
+      <div class="tool-group">
+        <button type="button" class="tool" id="undo" title="Cofnij (Ctrl+Z)" aria-label="Cofnij"><svg viewBox="0 0 24 24"><path d="M9 7L4.5 11.5 9 16M5 11.5h9a5 5 0 010 10h-2" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <button type="button" class="tool" id="redo" title="Ponów (Ctrl+Shift+Z)" aria-label="Ponów"><svg viewBox="0 0 24 24"><path d="M15 7l4.5 4.5L15 16M19 11.5h-9a5 5 0 000 10h2" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+      </div>
+      <div class="tool-group zoom">
+        <button type="button" class="tool" id="zoomOut" aria-label="Pomniejsz">−</button>
+        <span id="zoomLabel" class="zoom-label">100%</span>
+        <button type="button" class="tool" id="zoomIn" aria-label="Powiększ">+</button>
+      </div>
+      <div class="tool-group layer-nav" data-for="figure">
+        <button type="button" class="tool" id="layerDown" title="Warstwa niżej" aria-label="Warstwa niżej">▾</button>
+        <span id="layerLabel" class="layer-label"></span>
+        <button type="button" class="tool" id="layerUp" title="Warstwa wyżej" aria-label="Warstwa wyżej">▴</button>
+        <button type="button" class="btn btn-small" id="layerCopy" title="Skopiuj warstwę poniżej do bieżącej">Kopiuj z niższej</button>
+        <button type="button" class="btn btn-small" id="layerClear">Wyczyść</button>
+        <label class="check compact"><input id="buildView" type="checkbox"> Pokaż do tej warstwy</label>
+      </div>
+    </div>
+    <div id="chartScroller" class="chart-scroller"></div>
+    <div class="statusbar">
+      <span id="hoverInfo">Najedź na koralik, żeby zobaczyć szczegóły.</span>
+      <span id="dimInfo" class="dim-info"></span>
+    </div>
+  </main>
+
+  <section class="inspector">
+    <div class="preview-wrap">
+      <div id="preview" class="preview"></div>
+      <div class="preview-actions">
+        <button id="fitView" class="btn btn-small" type="button">Wyśrodkuj</button>
+        <button id="shot3d" class="btn btn-small" type="button" data-download>Zapisz obraz</button>
+      </div>
+      <p class="preview-hint">Przeciągnij, żeby obrócić · kółko, żeby przybliżyć</p>
+    </div>
+    <div class="tabs" role="tablist">
+      <button type="button" role="tab" id="tabUsage" aria-selected="true" aria-controls="usagePanel">Zużycie</button>
+      <button type="button" role="tab" id="tabSteps" aria-selected="false" aria-controls="stepsPanel">Instrukcja</button>
+    </div>
+    <div id="usagePanel" class="tab-panel" role="tabpanel" aria-labelledby="tabUsage"></div>
+    <div id="stepsPanel" class="tab-panel" role="tabpanel" aria-labelledby="tabSteps" hidden>
+      <div class="steps-actions">
+        <button id="copySteps" class="btn btn-small" type="button">Kopiuj instrukcję</button>
+        <button id="savePng" class="btn btn-small" type="button" data-download>Schemat PNG</button>
+      </div>
+      <ol id="steps" class="steps"></ol>
+    </div>
+  </section>
+</div>
+
+<div id="dialog" class="dialog-backdrop" hidden>
+  <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="dialogTitle">
+    <h2 id="dialogTitle"></h2>
+    <p id="dialogText"></p>
+    <div id="dialogButtons" class="dialog-buttons"></div>
+  </div>
+</div>
+<div id="toast" class="toast" role="status" hidden></div>
+<!--/APP-->
+<script type="module" src="js/main.js"></script>
+</body>
+</html>
