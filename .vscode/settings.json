@@ -1,0 +1,6 @@
+{
+  "liveServer.settings.root": "/",
+  "liveServer.settings.port": 5500,
+  "files.exclude": { "node_modules": true },
+  "editor.tabSize": 2
+}

@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "Projektowanie wzorów z koralików: naszyjniki, wężyki szydełkowe i figurki 3D z podglądem na żywo.",
   "scripts": {
-    "start": "npx http-server -c-1 -p 8080 .",
+    "start": "http-server -c-1 -p 8080 -o",
     "build": "node scripts/build-artifact.mjs",
     "test": "node --test"
   },
@@ -26,6 +26,7 @@
   "homepage": "https://github.com/dododorota/BeadsDesigner#readme",
   "devDependencies": {
     "esbuild": "^0.24.0",
+    "http-server": "^14.1.1",
     "three": "^0.169.0"
   },
   "private": true,

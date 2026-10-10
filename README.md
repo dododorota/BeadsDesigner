@@ -31,20 +31,33 @@ Skróty: `B` ołówek, `G` wypełnianie, `I` pipeta, `E` gumka, `1`–`9` kolor 
 
 ## Uruchomienie
 
-Najprościej: otwórz plik **`dist/beads-designer.html`** w przeglądarce — to cała aplikacja w jednym pliku, działa bez internetu.
+**Najprościej:** kliknij dwa razy **`dist/beads-designer.html`**. To cała aplikacja w jednym pliku i działa bez internetu.
 
-Wersja do pracy nad kodem (bez kroku budowania, zwykłe moduły ES):
+### W Visual Studio Code
+
+1. Rozpakuj folder i otwórz go w VS Code: *File → Open Folder…* → `BeadsDesigner`.
+2. VS Code zaproponuje rozszerzenie **Live Server** — zainstaluj je.
+3. Otwórz `index.html` i kliknij **Go Live** na dolnym pasku (albo prawy przycisk → *Open with Live Server*).
+   Aplikacja otworzy się w przeglądarce i odświeży sama po każdej zmianie w kodzie.
+
+Samego `index.html` nie da się otworzyć podwójnym kliknięciem: przeglądarka blokuje moduły
+JavaScript otwierane z dysku, dlatego potrzebny jest mały serwer (Live Server albo `npm start`).
+
+### Z terminala (wymaga [Node.js](https://nodejs.org))
 
 ```bash
-npm install      # tylko do testów i składania pliku jednoplikowego
-npm start        # http://localhost:8080
+npm install      # raz, pobiera narzędzia
+npm start        # serwer na http://localhost:8080, otwiera przeglądarkę
 npm test         # testy logiki wzorów
-npm run build    # odświeża dist/beads-designer.html
+npm run build    # odświeża dist/beads-designer.html po zmianach w kodzie
 ```
+
+W VS Code te same polecenia są w *Terminal → Run Task…*, a **F5** uruchamia aplikację w Chrome.
 
 ## Struktura
 
 ```
+.vscode/              ustawienia VS Code (Live Server, zadania, F5)
 index.html            układ interfejsu
 css/style.css         wygląd (jasny i ciemny motyw)
 js/beads.js           rozmiary koralików, wykończenia, paleta startowa
