@@ -4,28 +4,63 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/OrbitControls.js';
 import { RoomEnvironment } from 'three/addons/RoomEnvironment.js';
-import { BEAD_SIZES } from './beads.js';
-import { EMPTY } from './model.js';
+import { beadType } from './beads.js';
+import { EMPTY, baseBead, beadOf } from './model.js';
 
 const UP = new THREE.Vector3(0, 1, 0);
 
-// Koralik typu rocaille: spłaszczony pierścień z otworem wzdłuż osi Y.
-function beadGeometry(size) {
-  const { d, h, hole } = BEAD_SIZES[size];
-  const R = d / 2, H = h / 2, rh = hole / 2;
+// Bryła obrotowa z otworem wzdłuż osi Y: `outer(t)` daje promień zewnętrzny
+// dla t od -1 (dół) do 1 (góra).
+function latheBead(h, hole, outer, steps = 16, segments = 22) {
+  const H = h / 2, rh = hole / 2;
   const pts = [];
-  const steps = 14;
   for (let i = 0; i <= steps; i++) {
-    const t = -Math.PI / 2 + (Math.PI * i) / steps;
-    const c = Math.cos(t);
-    pts.push(new THREE.Vector2(rh + (R - rh) * Math.pow(Math.max(0, c), 0.55), H * Math.sin(t)));
+    const t = -1 + (2 * i) / steps;
+    pts.push(new THREE.Vector2(Math.max(rh, outer(t)), H * t));
   }
-  pts.push(new THREE.Vector2(rh * 0.98, H * 0.92));
-  pts.push(new THREE.Vector2(rh * 0.98, -H * 0.92));
+  pts.push(new THREE.Vector2(rh * 0.98, H * 0.96));
+  pts.push(new THREE.Vector2(rh * 0.98, -H * 0.96));
   pts.push(pts[0].clone());
-  const g = new THREE.LatheGeometry(pts, 22);
+  const g = new THREE.LatheGeometry(pts, segments);
   g.computeVertexNormals();
   return g;
+}
+
+// Każdy kształt koralika jako siatka z otworem wzdłuż osi Y (kierunek nitki).
+function beadGeometry(id) {
+  const b = beadType(id);
+  const R = b.d / 2, rh = b.hole / 2;
+  switch (b.shape) {
+    case 'cylinder':
+    case 'bugle': {
+      // Prawie płaskie ścianki z lekko zaokrąglonym brzegiem.
+      const edge = Math.min(0.92, 1 - 0.18 * (b.d / b.h));
+      return latheBead(b.h, b.hole, (t) => (Math.abs(t) < edge ? R : rh + (R - rh) * Math.sqrt(Math.max(0, 1 - ((Math.abs(t) - edge) / (1 - edge)) ** 2))), 20, 20);
+    }
+    case 'cube':
+    case 'tila': {
+      const g = new THREE.BoxGeometry(b.d, b.h, b.t ?? b.d, 1, 1, 1);
+      return g;
+    }
+    case 'triangle': {
+      const g = new THREE.CylinderGeometry(R * 1.1, R * 1.1, b.h, 3, 1);
+      g.rotateY(Math.PI / 6);
+      return g;
+    }
+    case 'bicone':
+      return latheBead(b.h, b.hole, (t) => R * (1 - Math.abs(t)) + rh, 8, 12);
+    case 'pearl':
+      return latheBead(b.h, b.hole, (t) => R * Math.sqrt(Math.max(0, 1 - t * t)), 18, 24);
+    case 'drop': {
+      // Kropla wisi pod nitką: otwór w poprzek, przy węższym końcu.
+      const g = new THREE.SphereGeometry(1, 20, 14);
+      g.scale(b.h / 2, b.h / 2, b.d / 2);
+      g.translate(0, 0, -(b.d / 2 - b.h * 0.35));
+      return g;
+    }
+    default: // round, demi: spłaszczony pierścień (rocaille)
+      return latheBead(b.h, b.hole, (t) => rh + (R - rh) * Math.pow(Math.max(0, Math.cos((t * Math.PI) / 2)), 0.55), 14, 22);
+  }
 }
 
 function beadMaterial(color) {
@@ -73,8 +108,8 @@ function strandCurve(length) {
   };
 }
 
-function figureBeads(fig, size, maxLayer, offset = new THREE.Vector3()) {
-  const { d } = BEAD_SIZES[size];
+function figureBeads(fig, base, maxLayer, offset = new THREE.Vector3()) {
+  const { d } = base;
   const { w, d: depth, h, voxels } = fig;
   const out = [];
   const cx = (w - 1) / 2, cy = (depth - 1) / 2;
@@ -93,29 +128,35 @@ function figureBeads(fig, size, maxLayer, offset = new THREE.Vector3()) {
 }
 
 export function buildBeads(p, ui) {
-  const b = BEAD_SIZES[p.beadSize];
+  const b = baseBead(p);
   const extras = [];
   let beads = [];
   if (p.mode === 'strand') {
     const s = p.strand;
-    const spacing = b.h * 1.02;
+    // Każdy koralik zajmuje na nitce tyle, ile ma długości — rurka 6 mm
+    // zajmuje więcej miejsca niż koralik 15/0.
+    const lengths = s.beads.map((c) => beadOf(p, c).h * 1.02);
+    const total = lengths.reduce((a, l) => a + l, 0);
     const gap = Math.max(6, b.d * 3);
-    const curve = strandCurve(s.count * spacing + gap);
+    const curve = strandCurve(total + gap);
+    let along = gap / 2;
     beads = s.beads.map((color, i) => {
-      const { p: pos, tan } = curve.at(gap / 2 + (i + 0.5) * spacing);
+      const { p: pos, tan } = curve.at(along + lengths[i] / 2);
+      along += lengths[i];
       return { pos, axis: tan, color };
     });
     extras.push({ kind: 'thread', points: curve.points });
     extras.push({ kind: 'clasp', pos: curve.at(0).p, size: b.d });
     if (s.pendant && p.figure.voxels.some((c) => c !== EMPTY)) {
-      const bottom = curve.at((s.count * spacing + gap) / 2).p;
+      const bottom = curve.at((total + gap) / 2).p;
       const f = p.figure;
+      const fb = baseBead(p, f.voxels.filter((c) => c !== EMPTY));
       // Najwyższa zajęta warstwa wyznacza, gdzie zaczepić zawieszkę.
       let topZ = 0;
       for (let z = 0; z < f.h; z++) if (f.voxels.slice(z * f.w * f.d, (z + 1) * f.w * f.d).some((c) => c !== EMPTY)) topZ = z;
       const ringY = bottom.y - b.d * 2.2;
-      const offset = new THREE.Vector3(bottom.x, ringY - b.d * 1.6 - topZ * b.d * 0.92, 0);
-      beads = beads.concat(figureBeads(f, p.beadSize, null, offset));
+      const offset = new THREE.Vector3(bottom.x, ringY - fb.d * 1.6 - topZ * fb.d * 0.92, 0);
+      beads = beads.concat(figureBeads(f, fb, null, offset));
       extras.push({ kind: 'ring', pos: new THREE.Vector3(bottom.x, ringY, 0), size: b.d });
     }
   } else if (p.mode === 'tube') {
@@ -133,7 +174,7 @@ export function buildBeads(p, ui) {
       return { pos, axis, color };
     });
   } else {
-    beads = figureBeads(p.figure, p.beadSize, ui.buildView ? ui.layer : null);
+    beads = figureBeads(p.figure, b, ui.buildView ? ui.layer : null);
   }
   return { beads, extras };
 }
@@ -205,9 +246,9 @@ export class Preview3D {
     });
   }
 
-  geometry(size) {
-    if (!this.geometries.has(size)) this.geometries.set(size, beadGeometry(size));
-    return this.geometries.get(size);
+  geometry(id) {
+    if (!this.geometries.has(id)) this.geometries.set(id, beadGeometry(id));
+    return this.geometries.get(id);
   }
 
   material(color, faded) {
@@ -228,7 +269,6 @@ export class Preview3D {
       if (child.userData.ownGeometry) child.geometry.dispose();
     }
     const { beads, extras } = buildBeads(p, ui);
-    const geo = this.geometry(p.beadSize);
     const groups = new Map();
     for (const bd of beads) {
       if (bd.color === EMPTY || !p.palette[bd.color]) continue;
@@ -239,7 +279,7 @@ export class Preview3D {
     const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), one = new THREE.Vector3(1, 1, 1);
     for (const [k, list] of groups) {
       const [color, faded] = k.split('|').map(Number);
-      const mesh = new THREE.InstancedMesh(geo, this.material(p.palette[color], faded === 1), list.length);
+      const mesh = new THREE.InstancedMesh(this.geometry(p.palette[color].bead), this.material(p.palette[color], faded === 1), list.length);
       list.forEach((bd, i) => {
         q.setFromUnitVectors(UP, bd.axis.clone().normalize());
         m4.compose(bd.pos, q, one);

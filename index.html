@@ -5,6 +5,15 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Beads Designer</title>
 <meta name="description" content="Projektowanie wzorów z koralików: naszyjniki, wężyki szydełkowe i figurki 3D z podglądem na żywo.">
+<meta name="theme-color" content="#f1eef4" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#141117" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Koraliki">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Figtree:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
@@ -106,19 +115,11 @@
     </section>
 
     <section class="panel">
-      <h2 class="panel-title">Koraliki</h2>
-      <label class="field"><span>Rozmiar</span>
-        <select id="beadSize">
-          <option value="15/0">15/0 · 1,5 mm</option>
-          <option value="11/0">11/0 · 2 mm</option>
-          <option value="8/0">8/0 · 3 mm</option>
-          <option value="6/0">6/0 · 4 mm</option>
-        </select>
-      </label>
       <div class="palette-head">
-        <h3 class="panel-subtitle">Kolory</h3>
-        <button id="addColor" class="btn btn-small" type="button">+ Dodaj kolor</button>
+        <h2 class="panel-title">Koraliki</h2>
+        <button id="addColor" class="btn btn-small" type="button">+ Dodaj koralik</button>
       </div>
+      <p class="hint">Każdy koralik ma własny kolor, kształt i rozmiar — w jednym projekcie możesz je mieszać.</p>
       <ul id="palette" class="palette"></ul>
     </section>
   </aside>
@@ -132,7 +133,7 @@
         <button type="button" class="tool" data-tool="fill" title="Wypełnij (G)" aria-label="Wypełnij">
           <svg viewBox="0 0 24 24"><path d="M11 4l7 7-6.5 6.5a2 2 0 01-2.8 0L4.5 13.3a2 2 0 010-2.8z M8 7.5l7 7 M19.5 15.5s1.8 2.2 1.8 3.3a1.8 1.8 0 01-3.6 0c0-1.1 1.8-3.3 1.8-3.3z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
         </button>
-        <button type="button" class="tool" data-tool="picker" title="Pipeta (I) — albo prawy przycisk myszy" aria-label="Pipeta">
+        <button type="button" class="tool" data-tool="picker" title="Pipeta (I) — albo prawy przycisk myszy / przytrzymanie palca" aria-label="Pipeta">
           <svg viewBox="0 0 24 24"><path d="M14.5 6.5l3 3M16 4.5a2.1 2.1 0 013 3l-2 2-3-3zM14 8l-8.5 8.5L5 19l2.5-.5L16 10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
         </button>
         <button type="button" class="tool" data-tool="eraser" data-for="figure" title="Gumka (E)" aria-label="Gumka">
@@ -141,7 +142,7 @@
       </div>
       <div class="current-color" title="Aktualny kolor">
         <span id="currentSwatch" class="swatch"></span>
-        <span id="currentName"></span>
+        <span class="current-text"><span id="currentName"></span><small id="currentBead"></small></span>
       </div>
       <div class="tool-group">
         <button type="button" class="tool" id="undo" title="Cofnij (Ctrl+Z)" aria-label="Cofnij"><svg viewBox="0 0 24 24"><path d="M9 7L4.5 11.5 9 16M5 11.5h9a5 5 0 010 10h-2" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
@@ -163,7 +164,7 @@
     </div>
     <div id="chartScroller" class="chart-scroller"></div>
     <div class="statusbar">
-      <span id="hoverInfo">Najedź na koralik, żeby zobaczyć szczegóły.</span>
+      <span id="hoverInfo">Wskaż koralik, żeby zobaczyć szczegóły.</span>
       <span id="dimInfo" class="dim-info"></span>
     </div>
   </main>
@@ -175,7 +176,7 @@
         <button id="fitView" class="btn btn-small" type="button">Wyśrodkuj</button>
         <button id="shot3d" class="btn btn-small" type="button" data-download>Zapisz obraz</button>
       </div>
-      <p class="preview-hint">Przeciągnij, żeby obrócić · kółko, żeby przybliżyć</p>
+      <p class="preview-hint">Przeciągnij, żeby obrócić · kółko albo dwa palce, żeby przybliżyć</p>
     </div>
     <div class="tabs" role="tablist">
       <button type="button" role="tab" id="tabUsage" aria-selected="true" aria-controls="usagePanel">Zużycie</button>

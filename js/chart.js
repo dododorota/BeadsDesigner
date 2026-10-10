@@ -4,6 +4,8 @@
 import { EMPTY } from './model.js';
 
 const MARGIN = { left: 40, top: 26, right: 16, bottom: 16 };
+const LONG_PRESS_MS = 450;
+const TAP_SLOP = 8; // px, o ile palec może drgnąć, żeby to nadal było stuknięcie
 
 function shade(hex, amt) {
   const n = parseInt(hex.slice(1), 16);
@@ -12,26 +14,46 @@ function shade(hex, amt) {
   return `rgb(${r},${g},${b})`;
 }
 
+// Zarys koralika w kwadracie 100×100. `view` to 'side' (z boku, nitka poziomo)
+// albo 'top' (patrzymy wzdłuż otworu, jak w figurce).
+function beadPath(g, shape, view) {
+  g.beginPath();
+  const poly = (pts) => { g.moveTo(...pts[0]); for (const pt of pts.slice(1)) g.lineTo(...pt); g.closePath(); };
+  switch (shape) {
+    case 'cube': g.roundRect(8, 8, 84, 84, 8); break;
+    case 'tila': g.roundRect(4, 14, 92, 72, 10); break;
+    case 'triangle': poly([[50, 6], [95, 90], [5, 90]]); break;
+    case 'bicone': poly([[50, 3], [97, 50], [50, 97], [3, 50]]); break;
+    case 'drop':
+      g.moveTo(50, 4);
+      g.bezierCurveTo(70, 26, 86, 42, 86, 62);
+      g.arc(50, 62, 36, 0, Math.PI);
+      g.bezierCurveTo(14, 42, 30, 26, 50, 4);
+      break;
+    case 'pearl': g.arc(50, 50, 47, 0, Math.PI * 2); break;
+    default:
+      if (view !== 'side') g.arc(50, 50, 45, 0, Math.PI * 2);
+      else if (shape === 'bugle') g.roundRect(2, 26, 96, 48, 10);
+      else if (shape === 'demi') g.roundRect(26, 4, 48, 92, 18);
+      else if (shape === 'cylinder') g.roundRect(9, 6, 82, 88, 10);
+      else g.roundRect(11, 4, 78, 92, 30); // rocaille: beczułka
+  }
+}
+
 // Gotowe obrazki pojedynczych koralików, żeby nie liczyć gradientów tysiące razy.
 const spriteCache = new Map();
-function beadSprite(color, shape, size, dpr) {
-  const key = `${color.hex}|${color.finish}|${shape}|${size}|${dpr}`;
+function beadSprite(color, view, shape, size, dpr) {
+  const px = Math.max(2, Math.round(size * dpr));
+  const key = `${color.hex}|${color.finish}|${view}|${shape}|${px}`;
   let c = spriteCache.get(key);
   if (c) return c;
   if (spriteCache.size > 400) spriteCache.clear();
   c = document.createElement('canvas');
-  const px = Math.max(2, Math.round(size * dpr));
   c.width = c.height = px;
   const g = c.getContext('2d');
   g.scale(px / 100, px / 100);
   const { hex, finish } = color;
-  g.beginPath();
-  if (shape === 'side') {
-    // Koralik widziany z boku na nitce: beczułka szersza niż dłuższa.
-    g.roundRect(11, 4, 78, 92, 30);
-  } else {
-    g.arc(50, 50, 45, 0, Math.PI * 2);
-  }
+  beadPath(g, shape, view);
   g.globalAlpha = finish === 'transparent' ? 0.78 : 1;
   const body = g.createLinearGradient(0, 0, 100, 100);
   if (finish === 'metallic') {
@@ -50,16 +72,22 @@ function beadSprite(color, shape, size, dpr) {
   g.strokeStyle = shade(hex, -0.38);
   g.stroke();
   // Otwór / nitka.
-  if (shape === 'side') {
+  const holes = shape === 'drop' ? [[50, 22, 7]] : shape === 'tila' && view !== 'side' ? [[28, 50, 9], [72, 50, 9]] : [[50, 50, 13]];
+  if (view === 'side' && shape !== 'drop') {
+    g.save();
+    g.clip();
     g.fillStyle = shade(hex, -0.3);
     g.globalAlpha = finish === 'transparent' ? 0.55 : 0.18;
-    g.fillRect(11, 44, 78, 12);
+    if (shape === 'tila') { g.fillRect(0, 28, 100, 9); g.fillRect(0, 63, 100, 9); } else g.fillRect(0, 44, 100, 12);
+    g.restore();
   } else {
-    g.beginPath();
-    g.arc(50, 50, 13, 0, Math.PI * 2);
     g.fillStyle = shade(hex, -0.45);
     g.globalAlpha = 0.55;
-    g.fill();
+    for (const [x, y, r] of holes) {
+      g.beginPath();
+      g.arc(x, y, r, 0, Math.PI * 2);
+      g.fill();
+    }
   }
   g.globalAlpha = 1;
   if (finish !== 'matte') {
@@ -80,7 +108,7 @@ export class ChartEditor {
     this.canvas = document.createElement('canvas');
     this.canvas.className = 'chart-canvas';
     this.canvas.setAttribute('role', 'img');
-    this.canvas.setAttribute('aria-label', 'Schemat wzoru — kliknij koralik, aby go pomalować');
+    this.canvas.setAttribute('aria-label', 'Schemat wzoru — kliknij albo stuknij koralik, aby go pomalować');
     scroller.appendChild(this.canvas);
     this.ctx = this.canvas.getContext('2d');
     this.zoom = 24;
@@ -97,7 +125,9 @@ export class ChartEditor {
   }
 
   setZoom(z) {
-    this.zoom = Math.max(8, Math.min(64, Math.round(z)));
+    z = Math.max(8, Math.min(64, Math.round(z)));
+    if (z === this.zoom) return;
+    this.zoom = z;
     this.render();
   }
 
@@ -119,22 +149,69 @@ export class ChartEditor {
     return best;
   }
 
+  // Mysz i rysik malują od razu. Palec czeka chwilę, żeby odróżnić stuknięcie,
+  // przeciągnięcie, przytrzymanie (pipeta) i gest dwoma palcami (przybliżanie).
+  // Gdy pojawi się Apple Pencil, palec tylko przesuwa schemat, a maluje rysik.
   bindEvents() {
     const cv = this.canvas;
+    this.pointers = new Map();
+    this.penSeen = false;
+    this.pending = null;
+    this.gesture = null;
+    this.lastType = 'mouse';
+
     cv.addEventListener('pointerdown', (e) => {
+      this.lastType = e.pointerType;
       if (e.button === 2) return;
-      const id = this.hit(this.toChart(e));
-      if (id === null) return;
+      if (e.pointerType === 'pen' && !this.penSeen) {
+        this.penSeen = true;
+        this.handlers.penDetected?.();
+      }
       e.preventDefault();
-      cv.setPointerCapture(e.pointerId);
-      this.drawing = true;
-      this.lastPt = this.toChart(e);
-      this.lastId = id;
-      this.handlers.down(id, e);
-    });
-    cv.addEventListener('pointermove', (e) => {
+      try { cv.setPointerCapture(e.pointerId); } catch { /* np. wskaźnik już puszczony */ }
+      this.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY, type: e.pointerType });
       const pt = this.toChart(e);
-      if (this.drawing) {
+      const id = this.hit(pt);
+      if (e.pointerType !== 'touch') {
+        if (id !== null) this.beginStroke(id, pt, e.pointerId);
+        return;
+      }
+      if (this.touches().length >= 2) {
+        this.cancelPending();
+        if (this.drawing) { this.drawing = false; this.handlers.cancel?.(); }
+        this.startPinch();
+        return;
+      }
+      if (id === null) { this.gesture = { kind: 'pan', pointerId: e.pointerId, x: e.clientX, y: e.clientY }; return; }
+      this.pending = {
+        id, pt, pointerId: e.pointerId, x: e.clientX, y: e.clientY,
+        timer: setTimeout(() => this.longPress(), LONG_PRESS_MS),
+      };
+    });
+
+    cv.addEventListener('pointermove', (e) => {
+      const rec = this.pointers.get(e.pointerId);
+      if (rec) { rec.x = e.clientX; rec.y = e.clientY; }
+      const g = this.gesture;
+      if (g?.kind === 'pinch') { this.updatePinch(); return; }
+      if (g?.kind === 'pan' && g.pointerId === e.pointerId) {
+        this.scroller.scrollLeft -= e.clientX - g.x;
+        this.scroller.scrollTop -= e.clientY - g.y;
+        g.x = e.clientX; g.y = e.clientY;
+        return;
+      }
+      const pend = this.pending;
+      if (pend && pend.pointerId === e.pointerId) {
+        if (Math.hypot(e.clientX - pend.x, e.clientY - pend.y) < TAP_SLOP) return;
+        this.cancelPending();
+        if (this.penSeen) {
+          this.gesture = { kind: 'pan', pointerId: e.pointerId, x: pend.x, y: pend.y };
+          return;
+        }
+        this.beginStroke(pend.id, pend.pt, e.pointerId);
+      }
+      const pt = this.toChart(e);
+      if (this.drawing && e.pointerId === this.strokePointer) {
         // Przy szybkim ruchu sprawdzamy punkty pośrednie, żeby nie zostawały dziury.
         const steps = Math.max(1, Math.ceil(Math.hypot(pt.x - this.lastPt.x, pt.y - this.lastPt.y) / (this.zoom / 3)));
         for (let i = 1; i <= steps; i++) {
@@ -143,28 +220,36 @@ export class ChartEditor {
         }
         this.lastPt = pt;
       }
-      const h = this.hit(pt);
-      if (h !== this.hover) {
-        this.hover = h;
-        this.handlers.hover(h);
-        this.render();
-      }
+      if (e.pointerType !== 'touch' || this.drawing) this.setHover(this.hit(pt));
     });
-    const end = () => {
-      if (!this.drawing) return;
-      this.drawing = false;
-      this.handlers.up();
+
+    const end = (e) => {
+      this.pointers.delete(e.pointerId);
+      const pend = this.pending;
+      if (pend && pend.pointerId === e.pointerId) {
+        this.cancelPending();
+        // Krótkie stuknięcie palcem maluje jeden koralik (albo wypełnia).
+        if (e.type === 'pointerup' && !this.penSeen) { this.beginStroke(pend.id, pend.pt, e.pointerId); this.endStroke(); }
+      }
+      const g = this.gesture;
+      if (g && (g.kind === 'pinch' ? this.touches().length < 2 : g.pointerId === e.pointerId)) this.gesture = null;
+      if (this.drawing && e.pointerId === this.strokePointer) this.endStroke();
+      if (e.pointerType === 'touch' && this.pointers.size === 0) this.setHover(null);
     };
     cv.addEventListener('pointerup', end);
     cv.addEventListener('pointercancel', end);
-    cv.addEventListener('pointerleave', () => {
-      if (this.hover !== null && !this.drawing) { this.hover = null; this.handlers.hover(null); this.render(); }
+    cv.addEventListener('pointerleave', (e) => {
+      if (e.pointerType !== 'touch' && !this.drawing) this.setHover(null);
     });
     cv.addEventListener('contextmenu', (e) => {
       e.preventDefault();
+      // Na dotyku pipetą jest przytrzymanie palca, więc tu obsługujemy tylko mysz.
+      if (this.lastType !== 'mouse') return;
       const id = this.hit(this.toChart(e));
       if (id !== null) this.handlers.pick(id);
     });
+    // Safari na iPadzie ma własne gesty przybliżania strony — tu je wyłączamy.
+    cv.addEventListener('gesturestart', (e) => e.preventDefault());
     this.scroller.addEventListener('wheel', (e) => {
       if (!e.ctrlKey && !e.metaKey) return;
       e.preventDefault();
@@ -173,9 +258,77 @@ export class ChartEditor {
     }, { passive: false });
   }
 
+  touches() {
+    return [...this.pointers.values()].filter((p) => p.type === 'touch');
+  }
+
+  beginStroke(id, pt, pointerId) {
+    this.drawing = true;
+    this.strokePointer = pointerId;
+    this.lastPt = pt;
+    this.lastId = id;
+    this.setHover(id);
+    this.handlers.down(id);
+  }
+
+  endStroke() {
+    this.drawing = false;
+    this.handlers.up();
+  }
+
+  cancelPending() {
+    if (!this.pending) return;
+    clearTimeout(this.pending.timer);
+    this.pending = null;
+  }
+
+  longPress() {
+    const pend = this.pending;
+    if (!pend) return;
+    this.pending = null;
+    this.setHover(pend.id);
+    this.handlers.pick(pend.id);
+    navigator.vibrate?.(12);
+  }
+
+  // Przybliżanie dwoma palcami: punkt schematu pod środkiem palców zostaje pod
+  // palcami, więc ten sam gest jednocześnie przybliża i przesuwa.
+  startPinch() {
+    const [a, b] = this.touches();
+    const r = this.canvas.getBoundingClientRect();
+    const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
+    this.gesture = {
+      kind: 'pinch',
+      z0: this.zoom,
+      d0: Math.max(10, Math.hypot(a.x - b.x, a.y - b.y)),
+      ux: (mx - r.left - MARGIN.left) / this.zoom,
+      uy: (my - r.top - MARGIN.top) / this.zoom,
+    };
+  }
+
+  updatePinch() {
+    const [a, b] = this.touches();
+    if (!b) return;
+    const g = this.gesture;
+    const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
+    const before = this.zoom;
+    this.setZoom(g.z0 * (Math.hypot(a.x - b.x, a.y - b.y) / g.d0));
+    if (this.zoom !== before) this.handlers.zoom?.(this.zoom);
+    const r = this.canvas.getBoundingClientRect();
+    this.scroller.scrollLeft += r.left + MARGIN.left + g.ux * this.zoom - mx;
+    this.scroller.scrollTop += r.top + MARGIN.top + g.uy * this.zoom - my;
+  }
+
+  setHover(id) {
+    if (id === this.hover) return;
+    this.hover = id;
+    this.handlers.hover(id);
+    this.render();
+  }
+
   render() {
     if (!this.data) return;
-    const { layout, colorOf, palette, mirrorOf } = this.data;
+    const { layout, colorOf, palette, mirrorOf, beadOf, base } = this.data;
     const S = this.zoom;
     const dpr = window.devicePixelRatio || 1;
     const W = MARGIN.left + layout.width * S + MARGIN.right;
@@ -234,7 +387,7 @@ export class ChartEditor {
     if (layout.ghost) {
       g.globalAlpha = 0.22;
       for (const c of layout.ghost) {
-        const sp = beadSprite(palette[c.color] || palette[0], 'top', S, dpr);
+        const sp = beadSprite(palette[c.color] || palette[0], 'top', beadOf(c.color).shape, S * 0.7, dpr);
         g.drawImage(sp, MARGIN.left + c.x * S + S * 0.15, MARGIN.top + c.y * S + S * 0.15, S * 0.7, S * 0.7);
       }
       g.globalAlpha = 1;
@@ -251,8 +404,11 @@ export class ChartEditor {
         g.fill();
         continue;
       }
-      const sp = beadSprite(palette[col] || palette[0], layout.shape, S, dpr);
-      g.drawImage(sp, x, y, S, S);
+      // Koraliki mniejsze od podstawowego rysujemy mniejsze, żeby było widać różnicę.
+      const t = beadOf(col);
+      const k = Math.max(0.55, Math.min(1, t.d / base.d));
+      const sp = beadSprite(palette[col] || palette[0], layout.shape, t.shape, S * k, dpr);
+      g.drawImage(sp, x + (S * (1 - k)) / 2, y + (S * (1 - k)) / 2, S * k, S * k);
     }
 
     // Środek naszyjnika.

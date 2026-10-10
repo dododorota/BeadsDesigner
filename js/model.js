@@ -1,7 +1,7 @@
 // Model projektu: trzy tryby projektowania i wszystko, co da się o nich policzyć
 // bez rysowania (układ na schemacie, sąsiedzi, symetria, zużycie, instrukcje).
 
-import { BEAD_SIZES, DEFAULT_PALETTE, beadsToGrams } from './beads.js';
+import { BEAD_TYPES, DEFAULT_BEAD, DEFAULT_PALETTE, LEGACY_SIZES, beadType, beadsToGrams } from './beads.js';
 
 export const MODES = {
   strand: 'Naszyjnik (sznurek)',
@@ -75,11 +75,10 @@ function exampleFigure() {
 
 export function createProject() {
   return {
-    version: 1,
+    version: 2,
     name: 'Mój naszyjnik',
     description: '',
     mode: 'strand',
-    beadSize: '11/0',
     palette: DEFAULT_PALETTE.map((c) => ({ ...c })),
     strand: exampleStrand(),
     tube: exampleTube(),
@@ -101,15 +100,18 @@ export function createBlankProject(mode = 'strand') {
 export function normalizeProject(raw) {
   const base = createBlankProject();
   if (!raw || typeof raw !== 'object') throw new Error('Plik nie zawiera projektu.');
-  const p = { ...base, ...raw };
+  const p = { ...base, ...raw, version: 2 };
+  // Wersja 1 miała jeden rozmiar dla całego projektu — trafia teraz do każdego koloru.
+  const legacyBead = LEGACY_SIZES[raw.beadSize] || DEFAULT_BEAD;
+  delete p.beadSize;
   if (!Array.isArray(p.palette) || p.palette.length === 0) p.palette = base.palette;
   p.palette = p.palette.map((c) => ({
     name: String(c.name || 'Kolor'),
     hex: /^#[0-9a-f]{6}$/i.test(c.hex) ? c.hex : '#999999',
     finish: c.finish || 'opaque',
+    bead: BEAD_TYPES[c.bead] ? c.bead : legacyBead,
   }));
   if (!MODES[p.mode]) p.mode = 'strand';
-  if (!BEAD_SIZES[p.beadSize]) p.beadSize = '11/0';
   const n = p.palette.length;
   const fixColor = (c, allowEmpty) => {
     c = Number.isInteger(c) ? c : 0;
@@ -360,23 +362,41 @@ export function countColors(p, beads = modeApi[p.mode].allBeads(p)) {
   return counts;
 }
 
+// Typ koralika (kształt i rozmiar) przypisany do koloru z palety.
+export const beadOf = (p, color) => beadType(p.palette[color]?.bead);
+
+// Typy koralików użyte w liście kolorów, od najczęstszego.
+export function beadTypesUsed(p, beads = modeApi[p.mode].allBeads(p)) {
+  const counts = new Map();
+  for (const c of beads) {
+    const id = p.palette[c]?.bead;
+    if (id) counts.set(id, (counts.get(id) || 0) + 1);
+  }
+  return [...counts.entries()].sort((a, b) => b[1] - a[1]).map(([id]) => id);
+}
+
+// Koralik, na którym opiera się siatka wężyka i figurki: najczęściej użyty.
+export function baseBead(p, beads = modeApi[p.mode].allBeads(p)) {
+  return beadType(beadTypesUsed(p, beads)[0] ?? p.palette[0]?.bead);
+}
+
 export function usage(p) {
   const counts = countColors(p);
   const total = counts.reduce((a, b) => a + b, 0);
-  return {
-    total,
-    rows: counts
-      .map((n, i) => ({ color: i, n, grams: beadsToGrams(n, p.beadSize) }))
-      .filter((r) => r.n > 0)
-      .sort((a, b) => b.n - a.n),
-    grams: beadsToGrams(total, p.beadSize),
-  };
+  const rows = counts
+    .map((n, i) => ({ color: i, n, grams: beadsToGrams(n, p.palette[i].bead) }))
+    .filter((r) => r.n > 0)
+    .sort((a, b) => b.n - a.n);
+  return { total, rows, grams: rows.reduce((a, r) => a + r.grams, 0) };
 }
 
 // Rozmiar gotowej rzeczy w milimetrach.
 export function dimensions(p) {
-  const b = BEAD_SIZES[p.beadSize];
-  if (p.mode === 'strand') return { label: 'Długość sznurka', value: `${(p.strand.count * b.h / 10).toFixed(1)} cm` };
+  if (p.mode === 'strand') {
+    const mm = p.strand.beads.reduce((a, c) => a + beadOf(p, c).h, 0);
+    return { label: 'Długość sznurka', value: `${(mm / 10).toFixed(1)} cm` };
+  }
+  const b = baseBead(p);
   if (p.mode === 'tube') {
     const len = p.tube.rows * b.d * 0.95;
     const dia = ((p.tube.around + 0.5) * b.d) / Math.PI + b.d * 0.9;
@@ -400,7 +420,12 @@ function runs(list) {
 }
 
 export function instructions(p) {
-  const name = (c) => (c === EMPTY ? '—' : p.palette[c]?.name ?? '?');
+  const mixed = beadTypesUsed(p).length > 1;
+  const name = (c) => {
+    if (c === EMPTY) return '—';
+    const n = p.palette[c]?.name ?? '?';
+    return mixed ? `${n} (${beadOf(p, c).label})` : n;
+  };
   const runText = (r) => `${r.n}× ${name(r.color)}`;
   const lines = [];
   if (p.mode === 'strand') {
@@ -447,9 +472,10 @@ export function instructions(p) {
 export function instructionsText(p) {
   const u = usage(p);
   const dim = dimensions(p);
-  const out = [`${p.name} — ${MODES[p.mode]}, koraliki ${p.beadSize}`, `${dim.label}: ${dim.value}`, ''];
+  const types = beadTypesUsed(p).map((id) => BEAD_TYPES[id].label).join(', ');
+  const out = [`${p.name} — ${MODES[p.mode]}${types ? `, koraliki: ${types}` : ''}`, `${dim.label}: ${dim.value}`, ''];
   out.push(`Zużycie (razem ${u.total} szt., ok. ${u.grams.toFixed(1)} g):`);
-  for (const r of u.rows) out.push(`  ${p.palette[r.color].name}: ${r.n} szt. (ok. ${r.grams.toFixed(1)} g)`);
+  for (const r of u.rows) out.push(`  ${p.palette[r.color].name}, ${beadOf(p, r.color).label}: ${r.n} szt. (ok. ${r.grams.toFixed(1)} g)`);
   out.push('');
   for (const l of instructions(p)) {
     if (l.head) out.push(l.head.toUpperCase(), l.note, '');

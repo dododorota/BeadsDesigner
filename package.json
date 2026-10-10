@@ -5,7 +5,8 @@
   "scripts": {
     "start": "http-server -c-1 -p 8080 -o",
     "build": "node scripts/build-artifact.mjs",
-    "test": "node --test"
+    "test": "node --test",
+    "icons": "node scripts/make-icons.mjs"
   },
   "repository": {
     "type": "git",

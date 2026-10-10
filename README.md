@@ -2,7 +2,9 @@
 
 Przeglądarkowa pracownia do projektowania wzorów z koralików — z podglądem 3D na żywo.
 Inspiracją był edytor wzorów do dzianiny (colorwork), ale tu wszystko kręci się wokół
-drobnych koralików (rocailles 15/0–6/0).
+koralików — od drobnych rocailles i Delica po rurki, tile, bicone i perełki, mieszane w jednym projekcie.
+
+Postęp prac, plan i podjęte decyzje: **[docs/POSTEP.md](docs/POSTEP.md)**.
 
 ## Trzy rodzaje projektów
 
@@ -21,17 +23,29 @@ Figurkę można zawiesić na naszyjniku: w trybie *Naszyjnik* zaznacz
 - **Symetria**: naszyjnik odbija wzór względem środka, figurka — lewo/prawo. Malujesz połowę, druga powstaje sama.
 - **Powtórzenia**: „Powiel pierwsze N koralików / rzędów” rozkłada fragment na całą długość.
 - **Figurki**: gotowe bryły (kula/jajo, walec, stożek, prostopadłościan), „Wydrąż środek”, kopiowanie warstwy, podgląd „do tej warstwy”, żeby zobaczyć, jak figurka rośnie.
-- **Paleta**: własne kolory, nazwy i wykończenia (nieprzezroczysty, przezroczysty, matowy, perłowy, metaliczny) — widać je też na podglądzie 3D.
-- **Zużycie**: liczba koralików każdego koloru i przybliżona waga w gramach.
+- **Koraliki**: każdy koralik w palecie ma własny kolor, kształt i rozmiar — okrągłe 15/0–6/0, Delica, Treasure, Aiko,
+  demi round, kostki, trójkąty, rurki 3–12 mm, krople i magatamy, Tila, bicone, perełki — oraz wykończenie
+  (nieprzezroczysty, przezroczysty, matowy, perłowy, metaliczny). Widać je na schemacie i w podglądzie 3D.
+- **Zużycie**: liczba koralików każdego rodzaju i przybliżona waga w gramach.
 - **Instrukcja**: kolejność nawlekania (naszyjnik, wężyk — od końca) albo warstwy rząd po rzędzie (figurka); można ją skopiować.
 - **Zapis**: projekt zapisuje się sam w przeglądarce; „Zapisz plik” / „Otwórz” do plików `.beads.json`; eksport schematu i podglądu do PNG.
 
-Skróty: `B` ołówek, `G` wypełnianie, `I` pipeta, `E` gumka, `1`–`9` kolor z palety,
+Na iPadzie: stuknięcie maluje, przytrzymanie palca to pipeta, dwa palce przybliżają i przesuwają schemat.
+Z Apple Pencil maluje rysik, a palec tylko przesuwa.
+
+Skróty klawiatury: `B` ołówek, `G` wypełnianie, `I` pipeta, `E` gumka, `1`–`9` kolor z palety,
 `Ctrl+Z` / `Ctrl+Shift+Z` cofnij/ponów, `+`/`-` powiększenie (albo Ctrl + kółko), `[` `]` warstwy.
 
 ## Uruchomienie
 
 **Najprościej:** kliknij dwa razy **`dist/beads-designer.html`**. To cała aplikacja w jednym pliku i działa bez internetu.
+
+### Na iPadzie
+
+Aplikacja jest publikowana na GitHub Pages: **https://dododorota.github.io/BeadsDesigner/**
+(trzeba raz włączyć: *Settings → Pages → Deploy from a branch → `main` / `(root)`*).
+Otwórz adres w Safari i wybierz *Udostępnij → Do ekranu początkowego* — pojawi się ikona,
+a aplikacja będzie działać na pełnym ekranie, także bez internetu. Wymaga iPadOS 16.4+.
 
 ### W Visual Studio Code
 
@@ -50,6 +64,7 @@ npm install      # raz, pobiera narzędzia
 npm start        # serwer na http://localhost:8080, otwiera przeglądarkę
 npm test         # testy logiki wzorów
 npm run build    # odświeża dist/beads-designer.html po zmianach w kodzie
+npm run icons    # rysuje ikony aplikacji (icons/*.png)
 ```
 
 W VS Code te same polecenia są w *Terminal → Run Task…*, a **F5** uruchamia aplikację w Chrome.
@@ -59,20 +74,22 @@ W VS Code te same polecenia są w *Terminal → Run Task…*, a **F5** uruchamia
 ```
 .vscode/              ustawienia VS Code (Live Server, zadania, F5)
 index.html            układ interfejsu
+manifest.webmanifest  instalacja na ekranie początkowym (iPad, telefon)
+sw.js                 praca offline (tylko na stronie https)
+icons/                ikony aplikacji
+docs/POSTEP.md        dziennik postępu, plan i decyzje
 css/style.css         wygląd (jasny i ciemny motyw)
-js/beads.js           rozmiary koralików, wykończenia, paleta startowa
+js/beads.js           katalog kształtów i rozmiarów koralików, wykończenia, paleta startowa
 js/model.js           tryby, układ schematu, symetria, wypełnianie, zużycie, instrukcje
 js/chart.js           schemat 2D na kanwie
 js/preview3d.js       podgląd 3D (three.js)
 js/main.js            spina wszystko: narzędzia, historia, zapis
 vendor/               three.js r169 (lokalnie, bez CDN)
-scripts/              składanie wersji jednoplikowej
+scripts/              składanie wersji jednoplikowej, rysowanie ikon
 tests/                testy logiki
 ```
 
-## Pomysły na dalej
+## Co dalej
 
-- inne techniki: peyote / brick stitch (płaskie paski i bransoletki), kilka sznurków naraz (naszyjnik wielorzędowy),
-  koraliki różnej wielkości w jednym sznurku, zawieszki i przekładki
-- import zdjęcia → wzór (dopasowanie kolorów do palety)
-- katalog prawdziwych kolorów Miyuki/Toho z numerami
+Plan etapów (ściegi płaskie i rurkowe, naszyjnik z motywami, figurki w technice japońskiej)
+jest w **[docs/POSTEP.md](docs/POSTEP.md)**.

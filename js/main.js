@@ -1,8 +1,8 @@
 // Spina interfejs: stan projektu, narzędzia, historia zmian, zapis i podgląd.
 
-import { BEAD_SIZES, FINISHES, SUGGESTED_COLORS } from './beads.js';
+import { BEAD_TYPES, FINISHES, SHAPES, SUGGESTED_COLORS, beadsPerGram } from './beads.js';
 import {
-  EMPTY, addShape, clearLayer, copyLayer, countColors, createBlankProject, createProject,
+  EMPTY, addShape, baseBead, beadOf, clearLayer, copyLayer, countColors, createBlankProject, createProject,
   dimensions, floodFill, hollow, instructions, instructionsText, mirrorStrand, modeApi, normalizeProject,
   removePaletteColor, repeatPattern, resizeFigure, resizeStrand, resizeTube, usage,
 } from './model.js';
@@ -13,6 +13,15 @@ const STORAGE_KEY = 'beadsdesigner.project.v1';
 const IN_ARTIFACT = Boolean(window.BEADS_ARTIFACT);
 
 const $ = (id) => document.getElementById(id);
+
+// Lista koralików do wyboru w palecie, pogrupowana według kształtu.
+const BEAD_OPTIONS = Object.entries(SHAPES).map(([shape, label]) => {
+  const opts = Object.entries(BEAD_TYPES)
+    .filter(([, t]) => t.shape === shape)
+    .map(([id, t]) => `<option value="${id}">${t.label}</option>`)
+    .join('');
+  return `<optgroup label="${label}">${opts}</optgroup>`;
+}).join('');
 
 const MODE_HINTS = {
   strand: 'Pojedynczy sznurek koralików. Schemat czyta się wierszami od lewej; trójkąt pokazuje środek naszyjnika.',
@@ -107,6 +116,17 @@ const chart = new ChartEditor($('chartScroller'), {
     if (strokeActive && !strokeChanged) history.undo.pop();
     strokeActive = false;
   },
+  // Drugi palec dotknął ekranu w trakcie malowania: to jednak gest przybliżania.
+  cancel() {
+    if (!strokeActive) return;
+    strokeActive = false;
+    const before = history.undo.pop();
+    if (strokeChanged && before) {
+      restore(before);
+      changed({ structure: true });
+    }
+  },
+  penDetected: () => toast('Rysik: malujesz rysikiem, palcem przesuwasz schemat'),
   pick,
   hover(id) {
     ui.hover = id;
@@ -147,6 +167,8 @@ function renderChart() {
     mode: project.mode,
     layout: api.layout(project, ui),
     palette: project.palette,
+    beadOf: (c) => beadOf(project, c),
+    base: baseBead(project),
     colorOf: (id) => api.get(project, id),
     mirrorOf: (id) => api.mirror(project, id),
   });
@@ -156,7 +178,9 @@ function renderChart() {
 function fitZoom() {
   const layout = modeApi[project.mode].layout(project, ui);
   const avail = $('chartScroller').clientWidth - 90;
-  chart.zoom = Math.max(12, Math.min(32, Math.floor(avail / layout.width)));
+  // Pod palec koraliki nie mogą być zbyt drobne — wtedy schemat po prostu się przewija.
+  const min = matchMedia('(pointer: coarse)').matches ? 18 : 12;
+  chart.zoom = Math.max(min, Math.min(32, Math.floor(avail / layout.width)));
   renderZoom();
 }
 
@@ -168,11 +192,11 @@ function renderHover() {
   const id = ui.hover;
   const info = $('hoverInfo');
   if (id === null) {
-    info.textContent = 'Najedź na koralik, żeby zobaczyć szczegóły.';
+    info.textContent = 'Wskaż koralik, żeby zobaczyć szczegóły.';
     return;
   }
   const c = modeApi[project.mode].get(project, id);
-  const name = c === EMPTY ? 'puste miejsce' : project.palette[c].name;
+  const name = c === EMPTY ? 'puste miejsce' : `${project.palette[c].name} (${beadOf(project, c).label})`;
   if (project.mode === 'strand') {
     info.textContent = `Koralik ${id + 1} z ${project.strand.count} · ${name}`;
   } else if (project.mode === 'tube') {
@@ -194,7 +218,7 @@ function schedulePreview() {
   requestAnimationFrame(() => {
     previewQueued = false;
     const p = project;
-    const fitKey = [p.mode, p.beadSize, p.strand.count, p.strand.pendant, p.tube.around, p.tube.rows, p.figure.w, p.figure.d, p.figure.h].join('|');
+    const fitKey = [p.mode, p.palette.map((c) => c.bead).join(), baseBead(p).label, p.strand.count, p.strand.pendant, p.tube.around, p.tube.rows, p.figure.w, p.figure.d, p.figure.h].join('|');
     preview.update(p, ui, fitKey);
   });
 }
@@ -222,7 +246,6 @@ function renderControls() {
   setNumber('figD', p.figure.d);
   setNumber('figH', p.figure.h);
   $('figMirror').checked = p.figure.mirror;
-  $('beadSize').value = p.beadSize;
   ui.layer = Math.max(0, Math.min(ui.layer, p.figure.h - 1));
   $('layerLabel').textContent = `Warstwa ${ui.layer + 1}/${p.figure.h}`;
   $('buildView').checked = ui.buildView;
@@ -241,13 +264,17 @@ function renderPalette() {
       <input class="swatch-input" type="color" aria-label="Kolor ${i + 1}" id="pal-color-${i}">
       <span class="meta">
         <input class="name" type="text" maxlength="40" aria-label="Nazwa koloru" id="pal-name-${i}">
-        <select class="finish" aria-label="Wykończenie" id="pal-finish-${i}">${Object.entries(FINISHES).map(([k, v]) => `<option value="${k}">${v}</option>`).join('')}</select>
+        <span class="bead-opts">
+          <select class="bead" aria-label="Kształt i rozmiar" id="pal-bead-${i}">${BEAD_OPTIONS}</select>
+          <select class="finish" aria-label="Wykończenie" id="pal-finish-${i}">${Object.entries(FINISHES).map(([k, v]) => `<option value="${k}">${v}</option>`).join('')}</select>
+        </span>
       </span>
       <span class="count"></span>
       <button class="remove" type="button" aria-label="Usuń kolor" title="Usuń kolor">×</button>`;
     li.querySelector('.swatch-input').value = c.hex;
     li.querySelector('.name').value = c.name;
     li.querySelector('.finish').value = c.finish;
+    li.querySelector('.bead').value = c.bead;
     li.querySelector('.count').innerHTML = `${i < 9 ? `<span class="key">${i + 1}</span>` : ''}${counts[i]}`;
     li.querySelector('.remove').disabled = project.palette.length <= 1;
     return li;
@@ -266,6 +293,7 @@ function renderCurrentColor() {
   const c = project.palette[ui.color];
   $('currentSwatch').style.background = c.hex;
   $('currentName').textContent = c.name;
+  $('currentBead').textContent = beadOf(project, ui.color).label;
 }
 
 function renderInfo() {
@@ -278,18 +306,19 @@ function renderInfo() {
   $('usagePanel').innerHTML = `
     <div class="usage-summary">
       <div><strong>${u.total}</strong><span>koralików</span></div>
-      <div><strong>${u.grams.toFixed(1)} g</strong><span>ok. wagi ${p.beadSize}</span></div>
+      <div><strong>${u.grams.toFixed(1)} g</strong><span>ok. wagi</span></div>
       <div><strong>${u.rows.length}</strong><span>kolorów</span></div>
     </div>
     <table class="usage-table"><tbody>
       ${u.rows.map((r) => {
         const c = p.palette[r.color];
         return `<tr><td><span class="dot" style="background:${c.hex}"></span>${esc(c.name)}
+          <span class="bead-label">${esc(beadOf(p, r.color).label)} · ok. ${beadsPerGram(c.bead)} szt./g</span>
           <div class="bar"><i style="width:${(r.n / max) * 100}%;background:${c.hex}"></i></div></td>
           <td class="num">${r.n} szt.</td><td class="num">${r.grams.toFixed(1)} g</td></tr>`;
       }).join('')}
     </tbody></table>
-    <p class="usage-note">Waga to przybliżenie dla japońskich koralików ${p.beadSize} (ok. ${BEAD_SIZES[p.beadSize].perGram} szt./g). Kup z zapasem 10–15%.</p>`;
+    <p class="usage-note">Waga to przybliżenie dla japońskich koralików (Miyuki, Toho); dla kształtów innych niż okrągłe 11/0 i Delica szacujemy ją z wymiarów. Kup z zapasem 10–15%.</p>`;
   const steps = instructions(p);
   $('steps').innerHTML = steps.map((l) => {
     if (l.head) return `<li class="head"><strong>${esc(l.head)}</strong><p>${esc(l.note)}</p></li>`;
@@ -404,8 +433,6 @@ function bind() {
     toast(n ? `Usunięto ${n} koralików ze środka` : 'Figurka jest już pusta w środku');
   });
 
-  $('beadSize').addEventListener('change', (e) => { snapshot(); project.beadSize = e.target.value; changed({ structure: true }); });
-
   // Paleta: jedna obsługa zdarzeń na całą listę.
   const palette = $('palette');
   palette.addEventListener('click', (e) => {
@@ -436,6 +463,7 @@ function bind() {
     if (e.target.classList.contains('swatch-input')) c.hex = e.target.value;
     else if (e.target.classList.contains('name')) c.name = e.target.value || 'Kolor';
     else if (e.target.classList.contains('finish')) c.finish = e.target.value;
+    else if (e.target.classList.contains('bead')) c.bead = e.target.value;
     if (snapshot.pending) { history.undo.push(snapshot.pending); history.redo.length = 0; snapshot.pending = null; }
     renderCurrentColor();
     renderChart();
@@ -447,7 +475,8 @@ function bind() {
     snapshot();
     const used = new Set(project.palette.map((c) => c.hex.toLowerCase()));
     const hex = SUGGESTED_COLORS.find((h) => !used.has(h)) || '#888888';
-    project.palette.push({ name: `Kolor ${project.palette.length + 1}`, hex, finish: 'opaque' });
+    // Nowy kolor dostaje ten sam koralik co aktualny — zwykle dokupuje się kolor tego samego rozmiaru.
+    project.palette.push({ name: `Kolor ${project.palette.length + 1}`, hex, finish: 'opaque', bead: project.palette[ui.color].bead });
     ui.color = project.palette.length - 1;
     changed({ palette: true });
     $(`pal-name-${ui.color}`)?.select();
@@ -554,3 +583,8 @@ renderChart();
 renderInfo();
 schedulePreview();
 $('saveState').textContent = restored ? 'Wczytano z przeglądarki' : '';
+
+// Praca offline tylko na prawdziwej stronie (https), żeby nie przeszkadzała przy pracy lokalnej.
+if ('serviceWorker' in navigator && location.protocol === 'https:' && !IN_ARTIFACT) {
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+}

@@ -2,8 +2,10 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   EMPTY, createProject, createBlankProject, normalizeProject, modeApi, floodFill, repeatPattern,
-  mirrorStrand, resizeTube, resizeFigure, hollow, removePaletteColor, usage, instructions, instructionsText,
+  mirrorStrand, resizeStrand, resizeTube, resizeFigure, hollow, removePaletteColor, usage, instructions, instructionsText,
+  dimensions, baseBead,
 } from '../js/model.js';
+import { BEAD_TYPES, SHAPES, beadsPerGram } from '../js/beads.js';
 
 test('przykładowy projekt jest poprawny po zapisie i odczycie', () => {
   const p = createProject();
@@ -78,4 +80,52 @@ test('zużycie i instrukcja', () => {
   assert.ok(instructionsText(p).includes('Warstwa 1'));
   p.mode = 'tube';
   assert.ok(instructionsText(p).includes('KOLEJNOŚĆ NAWLEKANIA'));
+});
+
+test('stary projekt z jednym rozmiarem dostaje ten rozmiar w każdym kolorze', () => {
+  const old = createProject();
+  delete old.version;
+  old.beadSize = '8/0';
+  old.palette.forEach((c) => { delete c.bead; });
+  const p = normalizeProject(JSON.parse(JSON.stringify(old)));
+  assert.equal(p.beadSize, undefined);
+  assert.ok(p.palette.every((c) => c.bead === 'round-8'));
+  assert.equal(p.version, 2);
+});
+
+test('nieznany typ koralika zamienia się na domyślny', () => {
+  const raw = createProject();
+  raw.palette[0].bead = 'nie-ma-takiego';
+  assert.equal(normalizeProject(raw).palette[0].bead, 'round-11');
+});
+
+test('mieszane koraliki: długość sznurka i waga liczone dla każdego typu', () => {
+  const p = createBlankProject('strand');
+  resizeStrand(p, 10);
+  p.palette[1].bead = 'bugle-6';
+  p.strand.beads = [0, 0, 0, 0, 0, 1, 1, 1, 1, 1];
+  // 5 × 1,4 mm + 5 × 6 mm = 37 mm
+  assert.equal(dimensions(p).value, '3.7 cm');
+  const u = usage(p);
+  const bugles = u.rows.find((r) => r.color === 1);
+  assert.ok(bugles.grams > u.rows.find((r) => r.color === 0).grams, 'rurki ważą więcej niż drobne koraliki');
+  assert.ok(instructionsText(p).includes('Rurka 6 mm'));
+});
+
+test('każdy typ koralika ma sensowne wymiary i szacowaną wagę', () => {
+  for (const [id, t] of Object.entries(BEAD_TYPES)) {
+    assert.ok(SHAPES[t.shape], `${id}: znany kształt`);
+    assert.ok(t.d > 0 && t.h > 0 && t.hole > 0 && t.hole < t.d, `${id}: wymiary`);
+    const n = beadsPerGram(id);
+    assert.ok(Number.isFinite(n) && n >= 1 && n < 2000, `${id}: ${n} szt./g`);
+  }
+  assert.equal(beadsPerGram('round-11'), 110);
+  assert.ok(beadsPerGram('round-15') > beadsPerGram('round-11'));
+  assert.ok(beadsPerGram('bugle-12') < beadsPerGram('bugle-3'));
+});
+
+test('siatka wężyka opiera się na najczęstszym koraliku', () => {
+  const p = createBlankProject('tube');
+  p.palette[0].bead = 'delica-11';
+  assert.equal(baseBead(p).label, 'Delica 11/0 (DB)');
 });

@@ -1,0 +1,16 @@
+{
+  "name": "Beads Designer",
+  "short_name": "Koraliki",
+  "description": "Projektowanie wzorów z koralików: naszyjniki, wężyki szydełkowe i figurki 3D z podglądem na żywo.",
+  "lang": "pl",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#f1eef4",
+  "theme_color": "#f1eef4",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
