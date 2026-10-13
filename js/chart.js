@@ -364,7 +364,7 @@ export class ChartEditor {
     }
 
     // Co piąta / dziesiąta linia pomocnicza na siatce kwadratowej (figurka i sznurek).
-    if (this.data.mode !== 'tube') {
+    if (this.data.mode === 'strand' || this.data.mode === 'figure') {
       g.strokeStyle = tok('--grid-line');
       g.lineWidth = 1;
       for (let x = 5; x < layout.width; x += 5) {
@@ -408,7 +408,17 @@ export class ChartEditor {
       const t = beadOf(col);
       const k = Math.max(0.55, Math.min(1, t.d / base.d));
       const sp = beadSprite(palette[col] || palette[0], layout.shape, t.shape, S * k, dpr);
-      g.drawImage(sp, x + (S * (1 - k)) / 2, y + (S * (1 - k)) / 2, S * k, S * k);
+      if (c.a) {
+        // Ściegi: koralik obrócony tak, jak leży jego otwór (pionowo, jodełka…).
+        // Na kanwie oś y rośnie w dół, więc kąt zmienia znak.
+        g.save();
+        g.translate(x + S / 2, y + S / 2);
+        g.rotate(-c.a);
+        g.drawImage(sp, (-S * k) / 2, (-S * k) / 2, S * k, S * k);
+        g.restore();
+      } else {
+        g.drawImage(sp, x + (S * (1 - k)) / 2, y + (S * (1 - k)) / 2, S * k, S * k);
+      }
     }
 
     // Środek naszyjnika.

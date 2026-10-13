@@ -2,13 +2,14 @@
 
 import { BEAD_TYPES, FINISHES, SHAPES, SUGGESTED_COLORS, beadsPerGram } from './beads.js';
 import {
-  EMPTY, addShape, baseBead, beadOf, clearLayer, copyLayer, countColors, createBlankProject, createProject,
+  EMPTY, addShape, baseBead, beadOf, clearLayer, setStitch, stitchLayoutOf, copyLayer, countColors, createBlankProject, createProject,
   dimensions, floodFill, hollow, instructions, instructionsText, mirrorStrand, modeApi, normalizeProject,
   removePaletteColor, repeatPattern, resizeFigure, resizeStrand, resizeTube, usage,
 } from './model.js';
 import { ChartEditor } from './chart.js';
 import { Preview3D } from './preview3d.js';
 import { Library, openBackend, parseImport } from './storage.js';
+import { STITCHES, rowsFromVisible, visibleRows } from './stitches.js';
 
 const IN_ARTIFACT = Boolean(window.BEADS_ARTIFACT);
 
@@ -26,6 +27,7 @@ const BEAD_OPTIONS = Object.entries(SHAPES).map(([shape, label]) => {
 const MODE_HINTS = {
   strand: 'Pojedynczy sznurek koralików. Schemat czyta się wierszami od lewej; trójkąt pokazuje środek naszyjnika.',
   tube: 'Wężyk szydełkowy z koralikami. Każdy rząd przesuwa się o pół koralika — tak jak na prawdziwym wężyku.',
+  stitch: '',
   figure: 'Figurka budowana warstwami od dołu. Rysujesz jeden plaster naraz; blade kropki to warstwa poniżej.',
 };
 
@@ -246,6 +248,16 @@ function renderHover() {
   } else if (project.mode === 'tube') {
     const C = project.tube.around;
     info.textContent = `Rząd ${Math.floor(id / C) + 1}, koralik ${(id % C) + 1} · ${name}`;
+  } else if (project.mode === 'stitch') {
+    const c = stitchLayoutOf(project).cells[id];
+    const st = project.stitch;
+    if (st.kind === 'praw') {
+      const unit = Math.floor(c.row / 2) + (c.part === 'wall' ? 1 : 0);
+      info.textContent = `${c.part === 'wall' ? `Klatka ${unit}, ściana` : unit === 0 ? 'Pierwsza podłoga' : `Klatka ${unit}, sufit`} ${c.col + 1} · ${name}`;
+    } else {
+      const row = st.kind === 'peyote' ? 2 * c.row + 1 + (c.col % 2) : c.row + 1;
+      info.textContent = `Rząd ${row}, ${st.kind === 'ladder' ? 'szczebel' : 'kolumna'} ${c.col + 1} · ${name}`;
+    }
   } else {
     const { w, d } = project.figure;
     info.textContent = `Warstwa ${ui.layer + 1} · rząd ${Math.floor(id / w) % d + 1} · kolumna ${(id % w) + 1} · ${name}`;
@@ -262,7 +274,8 @@ function schedulePreview() {
   requestAnimationFrame(() => {
     previewQueued = false;
     const p = project;
-    const fitKey = [p.mode, p.palette.map((c) => c.bead).join(), baseBead(p).label, p.strand.count, p.strand.pendant, p.tube.around, p.tube.rows, p.figure.w, p.figure.d, p.figure.h].join('|');
+    const st = p.stitch;
+    const fitKey = [p.mode, p.palette.map((c) => c.bead).join(), baseBead(p).label, st.kind, st.form, st.width, st.rows, st.sides, st.twist, p.strand.count, p.strand.pendant, p.tube.around, p.tube.rows, p.figure.w, p.figure.d, p.figure.h].join('|');
     preview.update(p, ui, fitKey);
   });
 }
@@ -278,7 +291,8 @@ function renderControls() {
   const p = project;
   $('projectName').value = p.name;
   document.querySelectorAll('.mode-switch button').forEach((b) => b.setAttribute('aria-checked', String(b.dataset.mode === p.mode)));
-  $('modeHint').textContent = MODE_HINTS[p.mode];
+  $('modeHint').textContent = p.mode === 'stitch' ? STITCHES[p.stitch.kind].hint : MODE_HINTS[p.mode];
+  renderStitchControls();
   document.querySelectorAll('[data-for]').forEach((el) => { el.hidden = el.dataset.for !== p.mode; });
   setNumber('strandCount', p.strand.count);
   setNumber('strandWrap', p.strand.wrap);
@@ -295,6 +309,27 @@ function renderControls() {
   $('buildView').checked = ui.buildView;
   if (p.mode !== 'figure' && ui.tool === 'eraser') setTool('pencil');
   document.title = `${p.name} · Beads Designer`;
+}
+
+function renderStitchControls() {
+  const st = project.stitch;
+  const praw = st.kind === 'praw', tube = st.form === 'tube';
+  $('stitchKind').value = st.kind;
+  $('stitchForm').value = st.form;
+  $('stitchForm').disabled = praw;
+  $('stitchWidthField').hidden = praw;
+  $('stitchSidesField').hidden = !praw;
+  $('stitchSides').value = String(st.sides);
+  $('stitchWidthLabel').textContent = tube ? 'Na obwodzie' : STITCHES[st.kind].widthLabel;
+  $('stitchWidth').step = st.kind === 'herringbone' ? 2 : 1;
+  setNumber('stitchWidth', st.width);
+  $('stitchRowsLabel').textContent = praw ? 'Klatek' : 'Rzędów';
+  setNumber('stitchRows', visibleRows(st));
+  $('stitchTwistField').hidden = !(st.kind === 'herringbone' && tube);
+  $('stitchTwist').checked = st.twist;
+  $('stitchMirrorField').hidden = tube;
+  $('stitchMirror').checked = st.mirror;
+  $('stitchRepeatUnit').textContent = praw ? 'klatek' : 'rzędów';
 }
 
 function renderPalette() {
@@ -463,6 +498,26 @@ function bind() {
   bindNumber('figD', (v) => resizeFigure(project, project.figure.w, v, project.figure.h));
   bindNumber('figH', (v) => resizeFigure(project, project.figure.w, project.figure.d, v));
 
+  $('stitchKind').innerHTML = Object.entries(STITCHES).map(([k, s]) => `<option value="${k}">${s.name}</option>`).join('');
+  const stitchChange = (changes) => {
+    snapshot();
+    setStitch(project, changes);
+    changed({ structure: true, fit: true });
+  };
+  $('stitchKind').addEventListener('change', (e) => stitchChange({ kind: e.target.value }));
+  $('stitchForm').addEventListener('change', (e) => stitchChange({ form: e.target.value }));
+  $('stitchSides').addEventListener('change', (e) => stitchChange({ sides: Number(e.target.value) }));
+  $('stitchWidth').addEventListener('change', (e) => stitchChange({ width: Number(e.target.value) }));
+  $('stitchRows').addEventListener('change', (e) => stitchChange({ rows: rowsFromVisible(project.stitch.kind, e.target.value) }));
+  $('stitchTwist').addEventListener('change', (e) => stitchChange({ twist: e.target.checked }));
+  $('stitchMirror').addEventListener('change', (e) => { project.stitch.mirror = e.target.checked; changed(); });
+  $('stitchRepeat').addEventListener('click', () => {
+    snapshot();
+    repeatPattern(project, rowsFromVisible(project.stitch.kind, $('stitchRepeatLen').value));
+    changed();
+    toast(project.stitch.kind === 'praw' ? 'Klatki powielone na cały sznur' : 'Rzędy powielone na całą robótkę');
+  });
+
   $('strandSym').addEventListener('change', (e) => { project.strand.symmetric = e.target.checked; changed(); });
   $('strandPendant').addEventListener('change', (e) => { project.strand.pendant = e.target.checked; changed(); });
   $('figMirror').addEventListener('change', (e) => { project.figure.mirror = e.target.checked; changed(); });
@@ -599,7 +654,7 @@ function bind() {
 
 // ---------------------------------------------------------------- moje projekty
 
-const MODE_NAMES = { strand: 'Naszyjnik', tube: 'Wężyk', figure: 'Figurka 3D' };
+const MODE_NAMES = { strand: 'Naszyjnik', tube: 'Wężyk', stitch: 'Ścieg', figure: 'Figurka 3D' };
 
 // Przełącza edytor na inny projekt. Nie zapisuje go od nowa — samo otwarcie
 // nie zmienia daty „ostatnio zmieniany”.
@@ -646,6 +701,7 @@ async function newProject() {
     { label: 'Przykład', value: 'example' },
     { label: 'Naszyjnik', value: 'strand', primary: true },
     { label: 'Wężyk', value: 'tube', primary: true },
+    { label: 'Ścieg', value: 'stitch', primary: true },
     { label: 'Figurka', value: 'figure', primary: true },
   ]);
   if (!choice) return;

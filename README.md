@@ -6,12 +6,13 @@ koralików — od drobnych rocailles i Delica po rurki, tile, bicone i perełki,
 
 Postęp prac, plan i podjęte decyzje: **[docs/POSTEP.md](docs/POSTEP.md)**.
 
-## Trzy rodzaje projektów
+## Cztery rodzaje projektów
 
 | Tryb | Co projektujesz | Jak wygląda schemat |
 | --- | --- | --- |
 | **Naszyjnik** | pojedynczy sznurek koralików, np. 300 szt. 11/0 ≈ 42 cm | koraliki ułożone wierszami; trójkąt pokazuje środek naszyjnika |
 | **Wężyk** | wężyk szydełkowy z koralikami (bead crochet), 3–16 na obwodzie | rozwinięty wężyk — każdy rząd przesunięty o pół koralika, dokładnie jak w spirali na prawdziwym wężyku |
+| **Ścieg** | peyote, brick, herringbone (też skręcony), square/krosno, ladder, CRAW i PRAW-3…6 — płasko albo w rurkę | koraliki ułożone i obrócone jak w danym ściegu (przesunięte kolumny, jodełka, klatki); instrukcja rząd po rzędzie |
 | **Figurka 3D** | zwierzątko / bryła z koralików, budowana warstwami | jeden poziomy plaster naraz, blade kropki to warstwa poniżej |
 
 Figurkę można zawiesić na naszyjniku: w trybie *Naszyjnik* zaznacz
@@ -87,6 +88,7 @@ js/chart.js           schemat 2D na kanwie
 js/preview3d.js       podgląd 3D (three.js)
 js/main.js            spina wszystko: narzędzia, historia, zapis, „Moje projekty”
 js/storage.js         biblioteka projektów na urządzeniu (IndexedDB), eksport i import
+js/stitches.js        silnik ściegów: układ, sąsiedzi, odbicie i instrukcja dla każdego ściegu
 vendor/               three.js r169 (lokalnie, bez CDN)
 scripts/              składanie wersji jednoplikowej, rysowanie ikon
 tests/                testy logiki

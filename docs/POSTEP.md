@@ -9,50 +9,44 @@ Aktualizujemy go przy każdym etapie pracy (checkpoint), najnowsze wpisy są na 
 
 ## Handover — gdzie skończyliśmy (aktualizacja 2026-10-13)
 
-**Stan kodu:** etapy 1 i 1b gotowe na `main`: katalog koralików, dotyk i Apple Pencil, instalacja
-na ekranie początkowym, praca offline, **„Moje projekty”** (wiele projektów na urządzeniu, miniaturki,
-zapis przy zamykaniu, eksport wszystkich do jednego pliku). 20 testów przechodzi.
-Lokalna gałąź nazywa się `main` i śledzi `origin/main` — zwykły `git push` działa.
+**Stan kodu:** etapy 1, 1b i 2 gotowe na `main`:
+- katalog koralików, dotyk i Apple Pencil, instalacja na ekranie początkowym, praca offline;
+- „Moje projekty” (wiele projektów na urządzeniu, miniaturki, zapis przy zamykaniu, eksport wszystkich);
+- **tryb „Ścieg”**: peyote, brick, herringbone (też skręcony), square/krosno, ladder, CRAW/PRAW-3…6 — płasko albo w rurkę.
 
-**Nadal otwarte: droga instalacji na iPadzie** (decyzje niżej). Etap 1b był wspólny dla wszystkich dróg,
-więc zrobiliśmy go bez czekania. Następny krok zależy od decyzji: 1c (aplikacja natywna) albo od razu etap 2.
+33 testy przechodzą. Lokalna gałąź `main` śledzi `origin/main` — zwykły `git push` działa.
 
-Jak jest teraz z zapisem: projekty w IndexedDB na urządzeniu, natychmiastowa kopia bieżącego projektu
-w `localStorage` przy chowaniu aplikacji, eksport wszystkiego do pliku `.beads.json`. Dane są nadal
-osobne dla Safari i dla ikony z ekranu początkowego i znikają po usunięciu ikony / danych witryny —
-dlatego aplikacja przypomina o kopii zapasowej (kropka przy „Moje projekty”, gdy kopii nie ma albo ma ponad 14 dni).
+**Decyzja (2026-10-13): zostajemy przy aplikacji z ekranu początkowego** (opcja A z tabeli niżej).
+Etap 1c (aplikacja natywna) odpada, dopóki Dorota sama do niego nie wróci.
 
-### Decyzje do podjęcia (po stronie Doroty)
+### Do zrobienia po stronie Doroty
 
-1. **Droga instalacji na iPadzie** — jedna z:
-   | Opcja | Koszt | Wygoda | Zapis projektów |
-   | --- | --- | --- | --- |
-   | A. Aplikacja z ekranu początkowego (już działa) | 0 zł | Safari tylko raz do instalacji; własna ikona, pełny ekran, offline | pamięć aplikacji + eksport do pliku |
-   | B. SideStore (sideload, darmowe Apple ID) | 0 zł | komputer z Windowsem raz przy konfiguracji; potem odświeżanie co 7 dni na iPadzie | prawdziwe pliki w *Pliki → Na moim iPadzie → Koraliki* |
-   | C. AltStore (sideload, darmowe Apple ID) | 0 zł | odświeżanie co 7 dni z komputera z AltServerem w tej samej sieci Wi-Fi | jak B |
-   | D. TrollStore | 0 zł | na stałe, bez odświeżania — **tylko starsze iPadOS (do 17.0)** | jak B |
-   | E. Apple Developer + TestFlight | 99 USD/rok | bez odświeżania, wersje ważne 90 dni; potrzebny Mac lub budowanie w chmurze | jak B, plus możliwy iCloud |
-2. **Sprawdzić wersję iPadOS:** Ustawienia → Ogólne → To urządzenie → Wersja iPadOS (decyduje, czy wchodzi w grę D).
-3. **Włączyć GitHub Pages** (potrzebne dla opcji A i jako zapas): repo jest/ma być publiczne;
-   *Settings → Pages → Deploy from a branch → `main` / `(root)`*. Adres: https://dododorota.github.io/BeadsDesigner/
-4. **Przetestować etap 1 na prawdziwym iPadzie** — lista niżej w sekcji „Do sprawdzenia na prawdziwym iPadzie”.
+1. **Włączyć GitHub Pages:** repo publiczne (*Settings → General → Danger Zone → Change visibility*),
+   potem *Settings → Pages → Deploy from a branch → `main` / `(root)`*. Adres: https://dododorota.github.io/BeadsDesigner/
+2. **Zainstalować na iPadzie:** Safari → adres wyżej → Udostępnij → Do ekranu początkowego.
+3. **Przetestować na prawdziwym iPadzie** — lista w sekcji „Do sprawdzenia na prawdziwym iPadzie”.
 
-Ustalenia z rozmowy: sam „Tryb dewelopera” nie wystarcza do sideloadu — aplikacja i tak musi być
-podpisana certyfikatem Apple (darmowe Apple ID = 7 dni) i wgrana narzędziem (SideStore/AltStore/Xcode);
-przełącznik pojawia się w Ustawieniach dopiero po wgraniu pierwszej takiej aplikacji.
-Nie używamy płatnych „serwisów do podpisywania” ani cudzych certyfikatów firmowych.
+### Następny krok
 
-### Od czego zaczynamy po decyzji
+**Etap 3 — naszyjnik z motywami** (kwiatki daisy chain, pętelki, perły i koraliki ozdobne między zwykłymi).
+Alternatywnie dopracowanie etapu 2 z listy „Znane ograniczenia ściegów” (np. przeniesienie wężyka
+szydełkowego do silnika ściegów, rysowanie ścieżki nici).
 
-Pierwszy krok jest ten sam niezależnie od wybranej drogi:
+<details>
+<summary>Rozważane drogi instalacji (archiwum decyzji)</summary>
 
-1. ~~**Etap 1b — „Moje projekty” i bezpieczny zapis**~~ ✅ zrobione 2026-10-13 (szczegóły w dzienniku).
-   W `js/storage.js` jest miejsce na drugi „backend” — pliki w Dokumentach dla aplikacji natywnej (Capacitor Filesystem).
-2. **Jeśli wybrana droga B/C/D/E — etap 1c, aplikacja natywna:** opakowanie w Capacitor, budowanie
-   niepodpisanego `.ipa` w GitHub Actions (macOS runner, darmowy dla publicznego repo), instrukcja
-   instalacji krok po kroku dla wybranego narzędzia. Od Doroty: Apple ID, komputer z Windowsem
-   (iTunes + iCloud z Microsoft Store) przy pierwszej konfiguracji.
-3. **Potem etap 2 — ściegi płaskie i rurkowe** (szczegóły w planie niżej).
+| Opcja | Koszt | Wygoda | Zapis projektów |
+| --- | --- | --- | --- |
+| **A. Aplikacja z ekranu początkowego — wybrana** | 0 zł | Safari tylko raz do instalacji; własna ikona, pełny ekran, offline | pamięć aplikacji + eksport do pliku |
+| B. SideStore (sideload, darmowe Apple ID) | 0 zł | komputer z Windowsem raz przy konfiguracji; potem odświeżanie co 7 dni na iPadzie | prawdziwe pliki w *Pliki → Na moim iPadzie* |
+| C. AltStore (sideload, darmowe Apple ID) | 0 zł | odświeżanie co 7 dni z komputera z AltServerem w tej samej sieci Wi-Fi | jak B |
+| D. TrollStore | 0 zł | na stałe — tylko starsze iPadOS (do 17.0) | jak B |
+| E. Apple Developer + TestFlight | 99 USD/rok | bez odświeżania, wersje ważne 90 dni; potrzebny Mac lub budowanie w chmurze | jak B, plus możliwy iCloud |
+
+Sam „Tryb dewelopera” nie wystarcza do sideloadu — aplikacja musi być podpisana certyfikatem Apple
+i wgrana narzędziem (SideStore/AltStore/Xcode). Nie używamy płatnych „serwisów do podpisywania”.
+W `js/storage.js` zostało miejsce na zapis do plików, gdyby kiedyś powstała wersja natywna.
+</details>
 
 ---
 
@@ -62,9 +56,9 @@ Pierwszy krok jest ten sam niezależnie od wybranej drogi:
 | --- | --- | --- |
 | 1 | Katalog koralików (kształty i rozmiary Miyuki/Toho w palecie) + obsługa iPada | ✅ (czeka na sprawdzenie na prawdziwym iPadzie) |
 | 1b | „Moje projekty”: wiele projektów, zapis w IndexedDB, zapis przy zamykaniu, eksport wszystkiego | ✅ |
-| 1c | Aplikacja natywna na iPada (Capacitor + `.ipa` z GitHub Actions), jeśli wybrana droga B–E | ⏳ czeka na decyzję |
-| 2 | Ściegi płaskie i rurkowe na wspólnym „silniku ściegów”: peyote, brick, herringbone (proste i skręcone), ladder, square/krosno, CRAW, PRAW-3…6; obecny wężyk szydełkowy też tu trafi | ⏳ |
-| 3 | Naszyjnik z motywami: kwiatki (daisy chain), pętelki, perły i koraliki ozdobne między zwykłymi | ⏳ |
+| 1c | Aplikacja natywna na iPada (Capacitor + `.ipa`) | — odrzucone 2026-10-13, zostajemy przy ekranie początkowym |
+| 2 | Ściegi płaskie i rurkowe na wspólnym „silniku ściegów”: peyote, brick, herringbone (proste i skręcone), ladder, square/krosno, CRAW, PRAW-3…6 | ✅ (wężyk szydełkowy jeszcze osobno — patrz ograniczenia) |
+| 3 | Naszyjnik z motywami: kwiatki (daisy chain), pętelki, perły i koraliki ozdobne między zwykłymi | ⏳ następny |
 | 4 | Figurki w technice japońskiej (na krzyż): oczka z numerami, koraliki na krawędziach, instrukcja krok po kroku | ⏳ |
 | — | Konstrukcje z rurek (kwiaty, gwiazdki, serduszka z trójkątów), import zdjęcia → wzór, katalog kolorów Miyuki/Toho z numerami | 💡 |
 
@@ -83,7 +77,13 @@ perełki 4 mm w „ścianach”).
 | Naszyjnik — pojedynczy sznurek, symetria od środka, powielanie wzoru, zawieszka-figurka | ✅ |
 | Wężyk szydełkowy (bead crochet), 3–16 na obwodzie, spirala z przesunięciem o pół koralika | ✅ |
 | Figurka 3D warstwami (woksele) — wstępna wersja, docelowo zastąpi ją technika japońska | ✅ |
-| Ściegi płaskie i rurkowe | ⏳ etap 2 |
+| Ścieg: peyote, brick, herringbone, square/krosno, ladder — płasko albo w rurkę | ✅ |
+| Ścieg: herringbone skręcony (spirala) w rurce | ✅ |
+| Ścieg: CRAW i PRAW-3, -5, -6 (sznur z „klatek”) | ✅ |
+| Schemat ściegu: koraliki obrócone jak otwór (poziomo, pionowo, jodełka), rzędy numerowane jak w danym ściegu | ✅ |
+| Podgląd 3D ściegu: płaska robótka albo rurka; PRAW na prawdziwym wielokącie | ✅ |
+| Instrukcja ściegu rząd po rzędzie (kierunek pracy, start ladder / rzędy 1–2 peyote, klatki PRAW) | ✅ |
+| Odbicie lewo–prawo, powielanie rzędów/klatek, wypełnianie z zawijaniem w rurce | ✅ |
 | Naszyjnik z motywami | ⏳ etap 3 |
 | Figurki w technice japońskiej | ⏳ etap 4 |
 
@@ -109,7 +109,7 @@ perełki 4 mm w „ścianach”).
 | iPad w pionie: schemat na całą szerokość | ✅ |
 | Instalacja na ekranie początkowym (ikona, pełny ekran) | ✅ |
 | Działanie bez internetu (service worker) — tylko na stronie https | ✅ |
-| Publikacja na GitHub Pages | ⏳ czeka na włączenie w ustawieniach repo |
+| Publikacja na GitHub Pages | ⏳ czeka na włączenie w ustawieniach repo (po stronie Doroty) |
 
 ### Zapis i eksport
 | Funkcja | Stan |
@@ -125,7 +125,7 @@ perełki 4 mm w „ścianach”).
 | Pliki `.beads.json`, eksport PNG schematu i podglądu | ✅ |
 | Stare pliki (jeden rozmiar dla projektu) wczytują się poprawnie | ✅ |
 | Zmiana nazwy projektu z poziomu listy (teraz: pole nazwy na górnym pasku) | 💡 |
-| Pliki w Dokumentach iPada (aplikacja natywna) | ⏳ etap 1c |
+| Pliki w Dokumentach iPada (aplikacja natywna) | — odrzucone |
 
 ---
 
@@ -141,8 +141,21 @@ Gesty były testowane w Chrome symulowanymi zdarzeniami dotyku i rysika. Na urz�
 - [ ] po instalacji aplikacja otwiera się w trybie samolotowym
 - [ ] „Moje projekty”: projekty zostają po zamknięciu aplikacji z przełącznika aplikacji (przesunięcie w górę)
 - [ ] „Eksportuj wszystkie” zapisuje plik w aplikacji Pliki; „Otwórz plik” dodaje projekty z tego pliku
+- [ ] tryb „Ścieg”: malowanie palcem i rysikiem po obróconych koralikach (brick, herringbone) trafia w dobry koralik
+- [ ] podgląd 3D rurki herringbone/CRAW obraca się płynnie
 
 Wymagany iPadOS 16.4 lub nowszy (import map w Safari).
+
+---
+
+## Znane ograniczenia ściegów
+
+- **Wężyk szydełkowy** to nadal osobny tryb „Wężyk” — jeszcze nie przeniesiony do silnika ściegów.
+- **Peyote w rurce** zakłada parzystą liczbę kolumn i przejście w górę (step up); spirala nieparzystego peyote nie jest modelowana.
+- **Odbicie w peyote przy parzystej liczbie kolumn** jest przybliżone: lustrzana kolumna ma drugą parzystość, więc jest pół koralika wyżej/niżej.
+- **Mieszane rozmiary koralików** w ściegu rysują się we właściwym kształcie i rozmiarze, ale siatka liczona jest dla najczęstszego koralika.
+- **Herringbone:** pochylenie koralików i skręt (pół koralika na rząd) są stałe, przybliżone.
+- **Ścieżka nici** nie jest rysowana — instrukcja opisuje kolejność słowami.
 
 ---
 
@@ -161,12 +174,27 @@ Wymagany iPadOS 16.4 lub nowszy (import map w Safari).
   Kod zapisu jest za jednym interfejsem (`all/get/put/del/getMeta/setMeta`), żeby aplikacja natywna
   mogła podstawić zapis do plików bez zmian w reszcie aplikacji.
 - **Otwarcie projektu nie zmienia daty „ostatnio zmieniany”** — lista jest sortowana według prawdziwych zmian.
+- **Instalacja na iPadzie: aplikacja z ekranu początkowego** (2026-10-13). Bez sideloadu i bez App Store.
+- **Silnik ściegów (`js/stitches.js`)**: każdy ścieg opisuje koraliki jednym zestawem pól — miejsce na schemacie (`x, y`),
+  kąt otworu (`a`), położenie w mm (`u, v`, a w PRAW `theta, rho`). Schemat, podgląd 3D, sąsiedzi do wypełniania,
+  odbicie i instrukcja czytają ten sam opis, więc nowy ścieg to tylko nowa funkcja układu.
+- **Peyote liczy rzędy jak w peyote:** pole „Rzędów” i instrukcja podają przejścia igłą (2 na każdy koralik w kolumnie).
+- **Zmiana ściegu albo rozmiaru zachowuje wzór** w tych samych rzędach i kolumnach (nowe miejsca powtarzają istniejący wzór).
 - **Format pliku eksportu:** `{ format: "beadsdesigner-library", version: 1, exported, projects: [{ updated, project }] }`;
   pojedynczy projekt to sam obiekt projektu (`version: 2`). Oba mają rozszerzenie `.beads.json`.
 
 ---
 
 ## Dziennik
+
+### 2026-10-13 — Etap 2: ściegi
+- Decyzja: zostajemy przy aplikacji z ekranu początkowego; etap 1c odrzucony.
+- Nowy moduł `js/stitches.js` (silnik ściegów) i tryb „Ścieg” w przełączniku (Naszyjnik · Wężyk · Ścieg · Figurka).
+- Ściegi: peyote, brick, herringbone (prosty i skręcony), square/krosno, ladder, CRAW, PRAW-3/5/6; płasko albo w rurkę.
+- Panel „Ścieg”: wybór ściegu i formy, szerokość / na obwodzie / boki, rzędy / klatki, skręt, odbicie, powielanie rzędów.
+- Schemat obraca koraliki według otworu; podgląd 3D płaski albo rurka; instrukcja rząd po rzędzie dla każdego ściegu.
+- Przykładowy projekt dostał peyote z rombem; nowy pusty ścieg to peyote 10 kolumn × 40 rzędów.
+- Testy: 33 (13 nowych dla ściegów). Sprawdzone w Chrome: zrzuty peyote, brick, skręconego herringbone i CRAW (schemat, 3D, instrukcja).
 
 ### 2026-10-13 — Etap 1b: „Moje projekty”
 - Nowy moduł `js/storage.js`: biblioteka projektów (IndexedDB → localStorage → pamięć), eksport/import.

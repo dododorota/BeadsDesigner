@@ -2,10 +2,14 @@
 // bez rysowania (układ na schemacie, sąsiedzi, symetria, zużycie, instrukcje).
 
 import { BEAD_TYPES, DEFAULT_BEAD, DEFAULT_PALETTE, LEGACY_SIZES, beadType, beadsToGrams } from './beads.js';
+import {
+  fixStitch, remapBeads, repeatStitchRows, stitchCount, stitchInstructions, stitchLayout, stitchMirror, stitchNeighbors,
+} from './stitches.js';
 
 export const MODES = {
   strand: 'Naszyjnik (sznurek)',
   tube: 'Wężyk (bead crochet)',
+  stitch: 'Ścieg (peyote, brick, herringbone…)',
   figure: 'Figurka 3D',
 };
 
@@ -51,6 +55,23 @@ function exampleTube() {
   return { around, rows, beads };
 }
 
+// Peyote płaski: biały pasek z różowym rombem i złotym środkiem.
+function exampleStitch() {
+  const st = fixStitch({ kind: 'peyote', form: 'flat', width: 14, rows: 18, mirror: true });
+  st.beads = [];
+  for (let r = 0; r < st.rows; r++) for (let c = 0; c < st.width; c++) {
+    const dist = Math.abs(c - 6.5) + Math.abs(r - 8.5) * 0.8;
+    st.beads.push(dist < 2 ? 7 : dist < 4.5 ? 0 : dist < 5.5 ? 1 : 6);
+  }
+  return st;
+}
+
+function blankStitch() {
+  const st = fixStitch({ kind: 'peyote', form: 'flat', width: 10, rows: 20 });
+  st.beads = new Array(stitchCount(st)).fill(0);
+  return st;
+}
+
 function exampleFigure() {
   // Kurczaczek: korpus + główka, wydrążone, z dziobkiem i oczkami.
   const w = 9, d = 9, h = 12;
@@ -82,16 +103,18 @@ export function createProject() {
     palette: DEFAULT_PALETTE.map((c) => ({ ...c })),
     strand: exampleStrand(),
     tube: exampleTube(),
+    stitch: exampleStitch(),
     figure: exampleFigure(),
   };
 }
 
 export function createBlankProject(mode = 'strand') {
   const p = createProject();
-  p.name = { strand: 'Nowy naszyjnik', tube: 'Nowy wężyk', figure: 'Nowa figurka' }[mode] || 'Nowy projekt';
+  p.name = { strand: 'Nowy naszyjnik', tube: 'Nowy wężyk', stitch: 'Nowy ścieg', figure: 'Nowa figurka' }[mode] || 'Nowy projekt';
   p.mode = mode;
   p.strand = { count: 300, wrap: 30, symmetric: true, pendant: false, beads: new Array(300).fill(0) };
   p.tube = { around: 6, rows: 40, beads: new Array(240).fill(0) };
+  p.stitch = blankStitch();
   p.figure = { w: 9, d: 9, h: 10, mirror: true, voxels: new Array(810).fill(EMPTY) };
   return p;
 }
@@ -128,6 +151,9 @@ export function normalizeProject(raw) {
   t.rows = clamp(t.rows, LIMITS.tubeRows);
   t.beads = Array.from({ length: t.around * t.rows }, (_, i) => fixColor((t.beads || [])[i] ?? 0));
   p.tube = t;
+  const st = fixStitch({ ...base.stitch, ...(raw.stitch || {}) });
+  st.beads = Array.from({ length: stitchCount(st) }, (_, i) => fixColor((raw.stitch?.beads || [])[i] ?? 0));
+  p.stitch = st;
   const f = { ...base.figure, ...(raw.figure || {}) };
   f.w = clamp(f.w, LIMITS.figureSide);
   f.d = clamp(f.d, LIMITS.figureSide);
@@ -222,6 +248,31 @@ const tubeMode = {
   allBeads: (p) => p.tube.beads,
 };
 
+// Ścieg: układ koralików liczy silnik ściegów (stitches.js) dla podstawowego koralika projektu.
+const stitchLayoutOf = (p) => stitchLayout(p.stitch, baseBead(p, p.stitch.beads));
+
+const stitchMode = {
+  get: (p, id) => p.stitch.beads[id],
+  set: (p, id, c) => { p.stitch.beads[id] = c; },
+  layout(p) {
+    const lay = stitchLayoutOf(p);
+    return { ...lay, marks: [], shape: 'side' };
+  },
+  neighbors: (p, id) => stitchNeighbors(stitchLayoutOf(p), id),
+  mirror: (p, id) => stitchMirror(p.stitch, id),
+  allBeads: (p) => p.stitch.beads,
+};
+
+// Zmiana ściegu, formy albo rozmiaru — wzór zostaje w tych samych rzędach i kolumnach.
+export function setStitch(p, changes) {
+  const old = p.stitch;
+  const st = fixStitch({ ...old, ...changes });
+  st.beads = remapBeads(old, old.beads, st);
+  p.stitch = st;
+}
+
+export { stitchLayoutOf };
+
 const figureMode = {
   get: (p, id) => p.figure.voxels[id],
   set: (p, id, c) => { p.figure.voxels[id] = c; },
@@ -259,7 +310,7 @@ const figureMode = {
   allBeads: (p) => p.figure.voxels.filter((c) => c !== EMPTY),
 };
 
-export const modeApi = { strand: strandMode, tube: tubeMode, figure: figureMode };
+export const modeApi = { strand: strandMode, tube: tubeMode, stitch: stitchMode, figure: figureMode };
 
 // ---------------------------------------------------------------- narzędzia
 
@@ -287,6 +338,8 @@ export function repeatPattern(p, len) {
     const s = p.strand;
     len = Math.max(1, Math.min(s.count, len | 0));
     for (let i = len; i < s.count; i++) s.beads[i] = s.beads[i % len];
+  } else if (p.mode === 'stitch') {
+    repeatStitchRows(p.stitch, p.stitch.beads, len);
   } else if (p.mode === 'tube') {
     const t = p.tube;
     len = Math.max(1, Math.min(t.rows, len | 0));
@@ -351,6 +404,7 @@ export function removePaletteColor(p, removed) {
   const remap = (c) => (c === EMPTY ? c : c === removed ? 0 : c > removed ? c - 1 : c);
   p.strand.beads = p.strand.beads.map(remap);
   p.tube.beads = p.tube.beads.map(remap);
+  p.stitch.beads = p.stitch.beads.map(remap);
   p.figure.voxels = p.figure.voxels.map(remap);
 }
 
@@ -397,6 +451,12 @@ export function dimensions(p) {
     return { label: 'Długość sznurka', value: `${(mm / 10).toFixed(1)} cm` };
   }
   const b = baseBead(p);
+  if (p.mode === 'stitch') {
+    const { w, h } = stitchLayoutOf(p).sizeMM;
+    return p.stitch.form === 'tube'
+      ? { label: 'Rurka', value: `${(h / 10).toFixed(1)} cm × ⌀ ${w.toFixed(1)} mm` }
+      : { label: 'Robótka', value: `${(w / 10).toFixed(1)} × ${(h / 10).toFixed(1)} cm` };
+  }
   if (p.mode === 'tube') {
     const len = p.tube.rows * b.d * 0.95;
     const dia = ((p.tube.around + 0.5) * b.d) / Math.PI + b.d * 0.9;
@@ -434,6 +494,8 @@ export function instructions(p) {
       const range = r.n === 1 ? `${r.start + 1}` : `${r.start + 1}–${r.start + r.n}`;
       lines.push({ num: range, text: runText(r), color: r.color });
     }
+  } else if (p.mode === 'stitch') {
+    lines.push(...stitchInstructions(p.stitch, p.stitch.beads, runText));
   } else if (p.mode === 'tube') {
     const { around: C, beads } = p.tube;
     lines.push({

@@ -5,7 +5,7 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/OrbitControls.js';
 import { RoomEnvironment } from 'three/addons/RoomEnvironment.js';
 import { beadType } from './beads.js';
-import { EMPTY, baseBead, beadOf } from './model.js';
+import { EMPTY, baseBead, beadOf, stitchLayoutOf } from './model.js';
 
 const UP = new THREE.Vector3(0, 1, 0);
 
@@ -127,6 +127,30 @@ function figureBeads(fig, base, maxLayer, offset = new THREE.Vector3()) {
   return out;
 }
 
+// Ścieg płaski leży przodem do kamery; rurka stoi pionowo. Kąt `a` to kierunek
+// otworu w płaszczyźnie robótki (0 = poziomo, π/2 = pionowo).
+function stitchBeads(p) {
+  const lay = stitchLayoutOf(p);
+  const list = p.stitch.beads;
+  const midV = lay.sizeMM.h / 2;
+  if (lay.form === 'tube') {
+    const rho0 = lay.circ / (2 * Math.PI);
+    return lay.cells.map((c) => {
+      const th = c.theta ?? (2 * Math.PI * c.u) / lay.circ;
+      const rho = c.rho ?? rho0;
+      const tangent = new THREE.Vector3(-Math.sin(th), 0, Math.cos(th));
+      const axis = tangent.multiplyScalar(Math.cos(c.a)).add(new THREE.Vector3(0, Math.sin(c.a), 0));
+      return { pos: new THREE.Vector3(rho * Math.cos(th), c.v - midV, rho * Math.sin(th)), axis, color: list[c.id] };
+    });
+  }
+  const midU = Math.max(...lay.cells.map((c) => c.u)) / 2;
+  return lay.cells.map((c) => ({
+    pos: new THREE.Vector3(c.u - midU, c.v - midV, 0),
+    axis: new THREE.Vector3(Math.cos(c.a), Math.sin(c.a), 0),
+    color: list[c.id],
+  }));
+}
+
 export function buildBeads(p, ui) {
   const b = baseBead(p);
   const extras = [];
@@ -173,6 +197,8 @@ export function buildBeads(p, ui) {
       const axis = new THREE.Vector3(-Math.sin(th) * 2 * Math.PI * rho, rowH, Math.cos(th) * 2 * Math.PI * rho).normalize();
       return { pos, axis, color };
     });
+  } else if (p.mode === 'stitch') {
+    beads = stitchBeads(p);
   } else {
     beads = figureBeads(p.figure, b, ui.buildView ? ui.layer : null);
   }

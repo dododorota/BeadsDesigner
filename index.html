@@ -55,9 +55,13 @@
           <svg viewBox="0 0 40 24" aria-hidden="true"><g fill="currentColor"><circle cx="8" cy="6" r="2.6"/><circle cx="14" cy="6" r="2.6"/><circle cx="20" cy="6" r="2.6"/><circle cx="26" cy="6" r="2.6"/><circle cx="32" cy="6" r="2.6"/><circle cx="11" cy="12" r="2.6"/><circle cx="17" cy="12" r="2.6"/><circle cx="23" cy="12" r="2.6"/><circle cx="29" cy="12" r="2.6"/><circle cx="8" cy="18" r="2.6"/><circle cx="14" cy="18" r="2.6"/><circle cx="20" cy="18" r="2.6"/><circle cx="26" cy="18" r="2.6"/><circle cx="32" cy="18" r="2.6"/></g></svg>
           <span>Wężyk</span>
         </button>
+        <button type="button" role="radio" data-mode="stitch" id="modeStitch">
+          <svg viewBox="0 0 40 24" aria-hidden="true"><g fill="currentColor"><rect x="6" y="2" width="4.5" height="6" rx="2"/><rect x="12" y="2" width="4.5" height="6" rx="2"/><rect x="18" y="2" width="4.5" height="6" rx="2"/><rect x="24" y="2" width="4.5" height="6" rx="2"/><rect x="30" y="2" width="4.5" height="6" rx="2"/><rect x="9" y="9" width="4.5" height="6" rx="2"/><rect x="15" y="9" width="4.5" height="6" rx="2"/><rect x="21" y="9" width="4.5" height="6" rx="2"/><rect x="27" y="9" width="4.5" height="6" rx="2"/><rect x="6" y="16" width="4.5" height="6" rx="2"/><rect x="12" y="16" width="4.5" height="6" rx="2"/><rect x="18" y="16" width="4.5" height="6" rx="2"/><rect x="24" y="16" width="4.5" height="6" rx="2"/><rect x="30" y="16" width="4.5" height="6" rx="2"/></g></svg>
+          <span>Ścieg</span>
+        </button>
         <button type="button" role="radio" data-mode="figure" id="modeFigure">
           <svg viewBox="0 0 40 24" aria-hidden="true"><g fill="currentColor"><circle cx="20" cy="5" r="2.6"/><circle cx="15" cy="10.5" r="2.6"/><circle cx="20.5" cy="10.5" r="2.6"/><circle cx="26" cy="10.5" r="2.6"/><circle cx="12" cy="17" r="2.6"/><circle cx="17.5" cy="17" r="2.6"/><circle cx="23" cy="17" r="2.6"/><circle cx="28.5" cy="17" r="2.6"/></g></svg>
-          <span>Figurka 3D</span>
+          <span>Figurka</span>
         </button>
       </div>
       <p id="modeHint" class="hint"></p>
@@ -91,6 +95,31 @@
         <input id="tubeRepeatLen" type="number" min="1" value="6" aria-label="Liczba powtarzanych rzędów">
         <span>rzędów</span>
         <button id="tubeRepeat" class="btn btn-small" type="button">Powiel</button>
+      </div>
+    </section>
+
+    <section class="panel" data-for="stitch">
+      <h2 class="panel-title">Ścieg</h2>
+      <div class="field-row">
+        <label class="field"><span>Ścieg</span><select id="stitchKind"></select></label>
+        <label class="field"><span>Forma</span>
+          <select id="stitchForm"><option value="flat">Płaski</option><option value="tube">Rurka</option></select>
+        </label>
+      </div>
+      <div class="field-row">
+        <label class="field" id="stitchWidthField"><span id="stitchWidthLabel">W rzędzie</span><input id="stitchWidth" type="number" min="2" max="60" step="1"></label>
+        <label class="field" id="stitchSidesField"><span>Boków</span>
+          <select id="stitchSides"><option value="3">3 · PRAW-3</option><option value="4">4 · CRAW</option><option value="5">5 · PRAW-5</option><option value="6">6 · PRAW-6</option></select>
+        </label>
+        <label class="field"><span id="stitchRowsLabel">Rzędów</span><input id="stitchRows" type="number" min="1" max="800" step="1"></label>
+      </div>
+      <label class="check" id="stitchTwistField"><input id="stitchTwist" type="checkbox"> Skręcony (spirala)</label>
+      <label class="check" id="stitchMirrorField"><input id="stitchMirror" type="checkbox"> Odbicie lewo–prawo</label>
+      <div class="inline-action">
+        <span>Powiel pierwsze</span>
+        <input id="stitchRepeatLen" type="number" min="1" value="4" aria-label="Liczba powtarzanych rzędów">
+        <span id="stitchRepeatUnit">rzędów</span>
+        <button id="stitchRepeat" class="btn btn-small" type="button">Powiel</button>
       </div>
     </section>
 
