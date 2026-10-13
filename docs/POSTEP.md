@@ -9,12 +9,13 @@ Aktualizujemy go przy każdym etapie pracy (checkpoint), najnowsze wpisy są na 
 
 ## Handover — gdzie skończyliśmy (aktualizacja 2026-10-13)
 
-**Stan kodu:** etapy 1, 1b i 2 gotowe na `main`:
+**Stan kodu:** etapy 1, 1b, 2 i 3 gotowe na `main`:
 - katalog koralików, dotyk i Apple Pencil, instalacja na ekranie początkowym, praca offline;
 - „Moje projekty” (wiele projektów na urządzeniu, miniaturki, zapis przy zamykaniu, eksport wszystkich);
-- **tryb „Ścieg”**: peyote, brick, herringbone (też skręcony), square/krosno, ladder, CRAW/PRAW-3…6 — płasko albo w rurkę.
+- **tryb „Ścieg”**: peyote, brick, herringbone (też skręcony), square/krosno, ladder, CRAW/PRAW-3…6 — płasko albo w rurkę;
+- **motywy na naszyjniku**: stokrotki (daisy chain), pętelki, frędzle — narzędziem na schemacie albo „Wstaw co N koralików”.
 
-33 testy przechodzą. Lokalna gałąź `main` śledzi `origin/main` — zwykły `git push` działa.
+42 testy przechodzą. Lokalna gałąź `main` śledzi `origin/main` — zwykły `git push` działa.
 
 **Decyzja (2026-10-13): zostajemy przy aplikacji z ekranu początkowego** (opcja A z tabeli niżej).
 Etap 1c (aplikacja natywna) odpada, dopóki Dorota sama do niego nie wróci.
@@ -28,9 +29,10 @@ Etap 1c (aplikacja natywna) odpada, dopóki Dorota sama do niego nie wróci.
 
 ### Następny krok
 
-**Etap 3 — naszyjnik z motywami** (kwiatki daisy chain, pętelki, perły i koraliki ozdobne między zwykłymi).
-Alternatywnie dopracowanie etapu 2 z listy „Znane ograniczenia ściegów” (np. przeniesienie wężyka
-szydełkowego do silnika ściegów, rysowanie ścieżki nici).
+**Etap 4 — figurki w technice japońskiej** (na krzyż: oczka z numerami, koraliki na krawędziach,
+instrukcja krok po kroku jak na schematach z tablicy „biżu”). To największy etap — warto zacząć od
+jednej bryły (kulka) i dopiero potem dodawać uszy, łapki i własne kształty.
+Alternatywnie: dopracowanie list „Znane ograniczenia” (ściegi, motywy).
 
 <details>
 <summary>Rozważane drogi instalacji (archiwum decyzji)</summary>
@@ -58,8 +60,8 @@ W `js/storage.js` zostało miejsce na zapis do plików, gdyby kiedyś powstała 
 | 1b | „Moje projekty”: wiele projektów, zapis w IndexedDB, zapis przy zamykaniu, eksport wszystkiego | ✅ |
 | 1c | Aplikacja natywna na iPada (Capacitor + `.ipa`) | — odrzucone 2026-10-13, zostajemy przy ekranie początkowym |
 | 2 | Ściegi płaskie i rurkowe na wspólnym „silniku ściegów”: peyote, brick, herringbone (proste i skręcone), ladder, square/krosno, CRAW, PRAW-3…6 | ✅ (wężyk szydełkowy jeszcze osobno — patrz ograniczenia) |
-| 3 | Naszyjnik z motywami: kwiatki (daisy chain), pętelki, perły i koraliki ozdobne między zwykłymi | ⏳ następny |
-| 4 | Figurki w technice japońskiej (na krzyż): oczka z numerami, koraliki na krawędziach, instrukcja krok po kroku | ⏳ |
+| 3 | Naszyjnik z motywami: stokrotki (daisy chain), pętelki, frędzle; perły i koraliki ozdobne przez katalog koralików | ✅ |
+| 4 | Figurki w technice japońskiej (na krzyż): oczka z numerami, koraliki na krawędziach, instrukcja krok po kroku | ⏳ następny |
 | — | Konstrukcje z rurek (kwiaty, gwiazdki, serduszka z trójkątów), import zdjęcia → wzór, katalog kolorów Miyuki/Toho z numerami | 💡 |
 
 Skąd ta kolejność: tablica inspiracji na Pinterest („biżu”) — najwięcej jest figurek 3D,
@@ -84,7 +86,12 @@ perełki 4 mm w „ścianach”).
 | Podgląd 3D ściegu: płaska robótka albo rurka; PRAW na prawdziwym wielokącie | ✅ |
 | Instrukcja ściegu rząd po rzędzie (kierunek pracy, start ladder / rzędy 1–2 peyote, klatki PRAW) | ✅ |
 | Odbicie lewo–prawo, powielanie rzędów/klatek, wypełnianie z zawijaniem w rurce | ✅ |
-| Naszyjnik z motywami | ⏳ etap 3 |
+| Motywy na naszyjniku: stokrotka (4–10 płatków + środek), pętelka (3–40), frędzel (2–40, z koralikiem zwrotnym) | ✅ |
+| Narzędzie „Motyw” (M): stuknięcie w koralik wstawia za nim motyw, stuknięcie w motyw go usuwa | ✅ |
+| „Wstaw co N koralików” — cały daisy chain jednym przyciskiem; pętelki na zewnątrz, do środka albo na zmianę | ✅ |
+| Motywy na schemacie (obwódka + znaczek), w 3D (kwiatek, kółko, zwisający frędzel), w instrukcji (kiedy przełożyć igłę) | ✅ |
+| Symetria, „Skopiuj lewą połowę na prawą” i „Powiel” uwzględniają motywy | ✅ |
+| Perły, bicone i koraliki ozdobne między zwykłymi | ✅ przez katalog koralików (etap 1) — kolor w palecie z innym kształtem |
 | Figurki w technice japońskiej | ⏳ etap 4 |
 
 ### Koraliki
@@ -148,6 +155,14 @@ Wymagany iPadOS 16.4 lub nowszy (import map w Safari).
 
 ---
 
+## Znane ograniczenia motywów
+
+- **Stokrotka** leży płasko w płaszczyźnie naszyjnika; środek ma zawsze jeden koralik.
+- **Pętelka** jest zaczepiona w jednym punkcie (bez koralików odstępu między jej końcami).
+- **Frędzel** zawsze zwisa pionowo w dół; nie ma rozgałęzień ani kwiatka na końcu.
+- **Kolory w motywie** wstawiają się jako aktualny kolor + kolor środka/zwrotny; resztę maluje się zwykłym ołówkiem.
+- Nie ma jeszcze kwiatków z większą liczbą okrążeń, listków, kokardek ani motywów z rurek (pomysły z tablicy).
+
 ## Znane ograniczenia ściegów
 
 - **Wężyk szydełkowy** to nadal osobny tryb „Wężyk” — jeszcze nie przeniesiony do silnika ściegów.
@@ -180,12 +195,26 @@ Wymagany iPadOS 16.4 lub nowszy (import map w Safari).
   odbicie i instrukcja czytają ten sam opis, więc nowy ścieg to tylko nowa funkcja układu.
 - **Peyote liczy rzędy jak w peyote:** pole „Rzędów” i instrukcja podają przejścia igłą (2 na każdy koralik w kolumnie).
 - **Zmiana ściegu albo rozmiaru zachowuje wzór** w tych samych rzędach i kolumnach (nowe miejsca powtarzają istniejący wzór).
+- **Motyw = grupa kolejnych koralików na tej samej nitce** (`strand.groups: [{ start, n, kind, side, rev }]`).
+  Koraliki zostają w zwykłej liście, więc malowanie, wypełnianie, zużycie i waga działają bez zmian;
+  grupa mówi tylko, jak je ułożyć (schemat, 3D) i co napisać w instrukcji. Kolejność nawlekania w motywie
+  jest stała (stokrotka: płatki → środek, frędzel: od góry → zwrotny), także po odbiciu lustrzanym.
 - **Format pliku eksportu:** `{ format: "beadsdesigner-library", version: 1, exported, projects: [{ updated, project }] }`;
   pojedynczy projekt to sam obiekt projektu (`version: 2`). Oba mają rozszerzenie `.beads.json`.
 
 ---
 
 ## Dziennik
+
+### 2026-10-13 — Etap 3: motywy na naszyjniku
+- Nowy moduł `js/motifs.js`: stokrotka, pętelka, frędzel jako grupy koralików na nitce; wstawianie, usuwanie,
+  wypełnianie co N, powielanie i lustro z motywami, długość naszyjnika z motywami.
+- Narzędzie „Motyw” na pasku (tylko naszyjnik) i sekcja „Motywy” w panelu sznurka.
+- Schemat: obwódka i znaczek motywu; 3D: kwiatek wokół środka, pętelka na zewnątrz/do środka, frędzel w dół;
+  instrukcja: „płatki → przełóż przez 1. płatek, środek → przełóż przez 4. płatek”, „zamknij pętelkę”, „wróć przez frędzel”.
+- Symetryczne malowanie dopasowuje role (płatek ↔ płatek, środek ↔ środek).
+- Testy: 42 (9 nowych dla motywów). Sprawdzone w Chrome: daisy chain jednym przyciskiem, pętelki na zmianę,
+  wstawienie i usunięcie motywu stuknięciem, schemat, 3D i instrukcja.
 
 ### 2026-10-13 — Etap 2: ściegi
 - Decyzja: zostajemy przy aplikacji z ekranu początkowego; etap 1c odrzucony.

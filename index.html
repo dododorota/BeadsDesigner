@@ -82,6 +82,22 @@
         <button id="strandRepeat" class="btn btn-small" type="button">Powiel</button>
       </div>
       <button id="strandMirror" class="btn btn-small btn-wide" type="button">Skopiuj lewą połowę na prawą</button>
+      <h3 class="panel-subtitle panel-subtitle-gap">Motywy</h3>
+      <div class="field-row">
+        <label class="field"><span>Motyw</span><select id="motifKind"></select></label>
+        <label class="field"><span id="motifSizeLabel">Płatków</span><input id="motifSize" type="number" min="2" max="40" step="1"></label>
+      </div>
+      <label class="field" id="motifAccentField"><span id="motifAccentLabel">Środek</span><select id="motifAccent"></select></label>
+      <label class="check" id="motifInsideField"><input id="motifInside" type="checkbox"> Pętelki do środka naszyjnika</label>
+      <label class="check" id="motifAltField"><input id="motifAlt" type="checkbox"> Pętelki na zmianę: na zewnątrz i do środka</label>
+      <p class="hint">Płatki i pętelki mają aktualny kolor. Narzędzie motywu na pasku: stuknij koralik — motyw wstawi się za nim; stuknij motyw — zniknie.</p>
+      <div class="inline-action">
+        <span>Wstaw co</span>
+        <input id="motifEvery" type="number" min="1" value="6" aria-label="Odstęp między motywami">
+        <span>koralików</span>
+        <button id="motifFill" class="btn btn-small" type="button">Wstaw wszędzie</button>
+      </div>
+      <button id="motifClear" class="btn btn-small btn-wide" type="button">Usuń wszystkie motywy</button>
     </section>
 
     <section class="panel" data-for="tube">
@@ -164,6 +180,9 @@
         </button>
         <button type="button" class="tool" data-tool="picker" title="Pipeta (I) — albo prawy przycisk myszy / przytrzymanie palca" aria-label="Pipeta">
           <svg viewBox="0 0 24 24"><path d="M14.5 6.5l3 3M16 4.5a2.1 2.1 0 013 3l-2 2-3-3zM14 8l-8.5 8.5L5 19l2.5-.5L16 10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+        </button>
+        <button type="button" class="tool" data-tool="motif" data-for="strand" title="Motyw (M) — stuknij koralik, żeby wstawić za nim motyw; stuknij motyw, żeby go usunąć" aria-label="Motyw">
+          <svg viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="6" r="3"/><circle cx="17.2" cy="9.8" r="3"/><circle cx="15.2" cy="16" r="3"/><circle cx="8.8" cy="16" r="3"/><circle cx="6.8" cy="9.8" r="3"/></g><circle cx="12" cy="11.6" r="2.2" fill="currentColor"/></svg>
         </button>
         <button type="button" class="tool" data-tool="eraser" data-for="figure" title="Gumka (E)" aria-label="Gumka">
           <svg viewBox="0 0 24 24"><path d="M8.5 19h11M5.2 14.6l8.4-8.4a2 2 0 012.8 0l2.4 2.4a2 2 0 010 2.8L11 19H8.4l-3.2-3.2a.8.8 0 010-1.2zM9.5 10.3l5.2 5.2" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>

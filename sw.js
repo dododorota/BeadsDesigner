@@ -1,7 +1,7 @@
 // Service worker: aplikacja działa bez internetu (np. na iPadzie zainstalowanym
 // jako aplikacja). Pliki są podawane z pamięci od razu, a w tle pobierana jest
 // nowa wersja — zmiany pojawiają się przy następnym uruchomieniu.
-const CACHE = 'beads-designer-v4';
+const CACHE = 'beads-designer-v5';
 const APP_FILES = [
   './',
   'index.html',
@@ -11,6 +11,7 @@ const APP_FILES = [
   'js/chart.js',
   'js/main.js',
   'js/model.js',
+  'js/motifs.js',
   'js/preview3d.js',
   'js/stitches.js',
   'js/storage.js',

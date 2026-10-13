@@ -3,13 +3,14 @@
 import { BEAD_TYPES, FINISHES, SHAPES, SUGGESTED_COLORS, beadsPerGram } from './beads.js';
 import {
   EMPTY, addShape, baseBead, beadOf, clearLayer, setStitch, stitchLayoutOf, copyLayer, countColors, createBlankProject, createProject,
-  dimensions, floodFill, hollow, instructions, instructionsText, mirrorStrand, modeApi, normalizeProject,
+  dimensions, floodFill, motifRoleText, hollow, instructions, instructionsText, mirrorStrand, modeApi, normalizeProject,
   removePaletteColor, repeatPattern, resizeFigure, resizeStrand, resizeTube, usage,
 } from './model.js';
 import { ChartEditor } from './chart.js';
 import { Preview3D } from './preview3d.js';
 import { Library, openBackend, parseImport } from './storage.js';
 import { STITCHES, rowsFromVisible, visibleRows } from './stitches.js';
+import { MOTIFS, clearMotifs, fillMotifs, groupAt, insertMotif, removeMotifAt } from './motifs.js';
 
 const IN_ARTIFACT = Boolean(window.BEADS_ARTIFACT);
 
@@ -36,7 +37,10 @@ const MODE_HINTS = {
 let project = createProject();
 let currentId = null;
 let library = null;
-const ui = { tool: 'pencil', color: 0, layer: 0, buildView: false, hover: null };
+const ui = {
+  tool: 'pencil', color: 0, layer: 0, buildView: false, hover: null,
+  motif: { kind: 'daisy', size: 6, accent: 3, inside: false, alternate: false },
+};
 const history = { undo: [], redo: [] };
 let strokeChanged = false;
 let strokeActive = false;
@@ -150,6 +154,7 @@ function changed({ structure = false, palette = false, fit = false } = {}) {
 const chart = new ChartEditor($('chartScroller'), {
   down(id) {
     if (ui.tool === 'picker') return pick(id);
+    if (ui.tool === 'motif') return motifTap(id);
     snapshot();
     strokeActive = true;
     strokeChanged = false;
@@ -199,6 +204,28 @@ function applyTool(id) {
   if (strokeChanged) changed();
 }
 
+// Narzędzie motywu: stuknięcie w zwykły koralik wstawia za nim motyw, w motyw — usuwa go.
+function motifTap(id) {
+  const s = project.strand;
+  snapshot();
+  if (groupAt(s, id)) {
+    removeMotifAt(s, id);
+    toast('Motyw usunięty');
+  } else {
+    const m = ui.motif;
+    if (!insertMotif(s, id, m.kind, m.size, motifColors())) {
+      history.undo.pop();
+      return toast('Naszyjnik ma już maksymalną liczbę koralików');
+    }
+  }
+  changed({ structure: true });
+}
+
+function motifColors() {
+  const m = ui.motif;
+  return { main: ui.color, accent: Math.min(m.accent, project.palette.length - 1), side: m.inside ? 'in' : 'out' };
+}
+
 function pick(id) {
   const c = modeApi[project.mode].get(project, id);
   if (c === EMPTY) return;
@@ -244,7 +271,8 @@ function renderHover() {
   const c = modeApi[project.mode].get(project, id);
   const name = c === EMPTY ? 'puste miejsce' : `${project.palette[c].name} (${beadOf(project, c).label})`;
   if (project.mode === 'strand') {
-    info.textContent = `Koralik ${id + 1} z ${project.strand.count} · ${name}`;
+    const role = motifRoleText(project, id);
+    info.textContent = `Koralik ${id + 1} z ${project.strand.count}${role ? ` · ${role}` : ''} · ${name}`;
   } else if (project.mode === 'tube') {
     const C = project.tube.around;
     info.textContent = `Rząd ${Math.floor(id / C) + 1}, koralik ${(id % C) + 1} · ${name}`;
@@ -307,8 +335,26 @@ function renderControls() {
   ui.layer = Math.max(0, Math.min(ui.layer, p.figure.h - 1));
   $('layerLabel').textContent = `Warstwa ${ui.layer + 1}/${p.figure.h}`;
   $('buildView').checked = ui.buildView;
-  if (p.mode !== 'figure' && ui.tool === 'eraser') setTool('pencil');
+  if ((p.mode !== 'figure' && ui.tool === 'eraser') || (p.mode !== 'strand' && ui.tool === 'motif')) setTool('pencil');
   document.title = `${p.name} · Beads Designer`;
+}
+
+function renderMotifControls() {
+  const m = ui.motif, meta = MOTIFS[m.kind];
+  $('motifKind').value = m.kind;
+  $('motifSizeLabel').textContent = meta.sizeLabel;
+  $('motifSize').min = meta.size[0];
+  $('motifSize').max = meta.size[1];
+  setNumber('motifSize', m.size);
+  $('motifAccentField').hidden = !meta.accentLabel;
+  $('motifAccentLabel').textContent = meta.accentLabel || '';
+  const accent = $('motifAccent');
+  accent.innerHTML = project.palette.map((c, i) => `<option value="${i}">${c.name.replace(/[<&]/g, '')}</option>`).join('');
+  accent.value = String(Math.min(m.accent, project.palette.length - 1));
+  $('motifInsideField').hidden = m.kind !== 'loop';
+  $('motifAltField').hidden = m.kind !== 'loop';
+  $('motifInside').checked = m.inside;
+  $('motifAlt').checked = m.alternate;
 }
 
 function renderStitchControls() {
@@ -359,6 +405,7 @@ function renderPalette() {
     return li;
   }));
   renderCurrentColor();
+  renderMotifControls();
 }
 
 function renderPaletteCounts() {
@@ -410,6 +457,7 @@ function renderInfo() {
 // ---------------------------------------------------------------- akcje
 
 function setTool(tool) {
+  if (tool === 'motif' && ui.tool !== 'motif') toast('Stuknij koralik — motyw wstawi się za nim. Stuknij motyw, żeby go usunąć.');
   ui.tool = tool;
   document.querySelectorAll('[data-tool]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.tool === tool)));
 }
@@ -417,7 +465,7 @@ function setTool(tool) {
 function setMode(mode) {
   if (project.mode === mode) return;
   project.mode = mode;
-  if (mode !== 'figure' && ui.tool === 'eraser') setTool('pencil');
+  if ((mode !== 'figure' && ui.tool === 'eraser') || (mode !== 'strand' && ui.tool === 'motif')) setTool('pencil');
   changed({ structure: true, fit: true });
 }
 
@@ -497,6 +545,35 @@ function bind() {
   bindNumber('figW', (v) => resizeFigure(project, v, project.figure.d, project.figure.h));
   bindNumber('figD', (v) => resizeFigure(project, project.figure.w, v, project.figure.h));
   bindNumber('figH', (v) => resizeFigure(project, project.figure.w, project.figure.d, v));
+
+  $('motifKind').innerHTML = Object.entries(MOTIFS).map(([k, m]) => `<option value="${k}">${m.name}</option>`).join('');
+  $('motifKind').addEventListener('change', (e) => {
+    ui.motif.kind = e.target.value;
+    ui.motif.size = MOTIFS[ui.motif.kind].def;
+    renderMotifControls();
+  });
+  $('motifSize').addEventListener('change', (e) => {
+    const [lo, hi] = MOTIFS[ui.motif.kind].size;
+    ui.motif.size = Math.max(lo, Math.min(hi, Math.round(Number(e.target.value) || lo)));
+    renderMotifControls();
+  });
+  $('motifAccent').addEventListener('change', (e) => { ui.motif.accent = Number(e.target.value); });
+  $('motifInside').addEventListener('change', (e) => { ui.motif.inside = e.target.checked; });
+  $('motifAlt').addEventListener('change', (e) => { ui.motif.alternate = e.target.checked; });
+  $('motifFill').addEventListener('click', () => {
+    snapshot();
+    const m = ui.motif;
+    const n = fillMotifs(project.strand, Number($('motifEvery').value), m.kind, m.size, motifColors(), m.kind === 'loop' && m.alternate);
+    changed({ structure: true });
+    toast(n ? `Wstawiono motywy: ${n}` : 'Naszyjnik jest za krótki na motywy w takim odstępie');
+  });
+  $('motifClear').addEventListener('click', () => {
+    if (!project.strand.groups.length) return toast('Na naszyjniku nie ma motywów');
+    snapshot();
+    clearMotifs(project.strand);
+    changed({ structure: true });
+    toast('Motywy usunięte');
+  });
 
   $('stitchKind').innerHTML = Object.entries(STITCHES).map(([k, s]) => `<option value="${k}">${s.name}</option>`).join('');
   const stitchChange = (changes) => {
@@ -641,6 +718,7 @@ function bind() {
     else if (k === 'g' || k === 'f') setTool('fill');
     else if (k === 'i') setTool('picker');
     else if (k === 'e' && project.mode === 'figure') setTool('eraser');
+    else if (k === 'm' && project.mode === 'strand') setTool('motif');
     else if (k === '+' || k === '=') { chart.setZoom(chart.zoom * 1.2); renderZoom(); }
     else if (k === '-') { chart.setZoom(chart.zoom / 1.2); renderZoom(); }
     else if (k === 'pageup' || k === ']') setLayer(ui.layer + 1);

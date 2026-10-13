@@ -10,7 +10,7 @@ Postęp prac, plan i podjęte decyzje: **[docs/POSTEP.md](docs/POSTEP.md)**.
 
 | Tryb | Co projektujesz | Jak wygląda schemat |
 | --- | --- | --- |
-| **Naszyjnik** | pojedynczy sznurek koralików, np. 300 szt. 11/0 ≈ 42 cm | koraliki ułożone wierszami; trójkąt pokazuje środek naszyjnika |
+| **Naszyjnik** | pojedynczy sznurek koralików, np. 300 szt. 11/0 ≈ 42 cm, z motywami: stokrotki (daisy chain), pętelki, frędzle | koraliki ułożone wierszami; motywy w obwódce; trójkąt pokazuje środek naszyjnika |
 | **Wężyk** | wężyk szydełkowy z koralikami (bead crochet), 3–16 na obwodzie | rozwinięty wężyk — każdy rząd przesunięty o pół koralika, dokładnie jak w spirali na prawdziwym wężyku |
 | **Ścieg** | peyote, brick, herringbone (też skręcony), square/krosno, ladder, CRAW i PRAW-3…6 — płasko albo w rurkę | koraliki ułożone i obrócone jak w danym ściegu (przesunięte kolumny, jodełka, klatki); instrukcja rząd po rzędzie |
 | **Figurka 3D** | zwierzątko / bryła z koralików, budowana warstwami | jeden poziomy plaster naraz, blade kropki to warstwa poniżej |
@@ -23,6 +23,8 @@ Figurkę można zawiesić na naszyjniku: w trybie *Naszyjnik* zaznacz
 - **Rysowanie**: ołówek, wypełnianie, pipeta (albo prawy przycisk myszy), gumka w figurce, cofnij/ponów.
 - **Symetria**: naszyjnik odbija wzór względem środka, figurka — lewo/prawo. Malujesz połowę, druga powstaje sama.
 - **Powtórzenia**: „Powiel pierwsze N koralików / rzędów” rozkłada fragment na całą długość.
+- **Motywy na naszyjniku**: narzędzie „Motyw” — stuknij koralik, a za nim pojawi się stokrotka, pętelka albo frędzel;
+  stuknij motyw, żeby go usunąć. „Wstaw co N koralików” robi cały daisy chain jednym przyciskiem.
 - **Figurki**: gotowe bryły (kula/jajo, walec, stożek, prostopadłościan), „Wydrąż środek”, kopiowanie warstwy, podgląd „do tej warstwy”, żeby zobaczyć, jak figurka rośnie.
 - **Koraliki**: każdy koralik w palecie ma własny kolor, kształt i rozmiar — okrągłe 15/0–6/0, Delica, Treasure, Aiko,
   demi round, kostki, trójkąty, rurki 3–12 mm, krople i magatamy, Tila, bicone, perełki — oraz wykończenie
@@ -36,7 +38,7 @@ Figurkę można zawiesić na naszyjniku: w trybie *Naszyjnik* zaznacz
 Na iPadzie: stuknięcie maluje, przytrzymanie palca to pipeta, dwa palce przybliżają i przesuwają schemat.
 Z Apple Pencil maluje rysik, a palec tylko przesuwa.
 
-Skróty klawiatury: `B` ołówek, `G` wypełnianie, `I` pipeta, `E` gumka, `1`–`9` kolor z palety,
+Skróty klawiatury: `B` ołówek, `G` wypełnianie, `I` pipeta, `E` gumka, `M` motyw, `1`–`9` kolor z palety,
 `Ctrl+Z` / `Ctrl+Shift+Z` cofnij/ponów, `+`/`-` powiększenie (albo Ctrl + kółko), `[` `]` warstwy.
 
 ## Uruchomienie
@@ -89,6 +91,7 @@ js/preview3d.js       podgląd 3D (three.js)
 js/main.js            spina wszystko: narzędzia, historia, zapis, „Moje projekty”
 js/storage.js         biblioteka projektów na urządzeniu (IndexedDB), eksport i import
 js/stitches.js        silnik ściegów: układ, sąsiedzi, odbicie i instrukcja dla każdego ściegu
+js/motifs.js          motywy na naszyjniku: stokrotki, pętelki, frędzle
 vendor/               three.js r169 (lokalnie, bez CDN)
 scripts/              składanie wersji jednoplikowej, rysowanie ikon
 tests/                testy logiki

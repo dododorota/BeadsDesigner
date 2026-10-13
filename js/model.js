@@ -3,8 +3,9 @@
 
 import { BEAD_TYPES, DEFAULT_BEAD, DEFAULT_PALETTE, LEGACY_SIZES, beadType, beadsToGrams } from './beads.js';
 import {
-  fixStitch, remapBeads, repeatStitchRows, stitchCount, stitchInstructions, stitchLayout, stitchMirror, stitchNeighbors,
+  fixStitch, plural, remapBeads, repeatStitchRows, stitchCount, stitchInstructions, stitchLayout, stitchMirror, stitchNeighbors,
 } from './stitches.js';
+import { MOTIFS, fixGroups, mirrorWithMotifs, repeatWithMotifs, roleInGroup, strandSlots, trimGroups } from './motifs.js';
 
 export const MODES = {
   strand: 'Naszyjnik (sznurek)',
@@ -43,7 +44,7 @@ function exampleStrand() {
   const motif = [1, 6, 7, 6, 1];
   for (let k = 0; k < motif.length; k++) beads[half - 1 - k] = motif[k];
   for (let i = 0; i < half; i++) beads[count - 1 - i] = beads[i];
-  return { count, wrap: 30, symmetric: true, pendant: true, beads };
+  return { count, wrap: 30, symmetric: true, pendant: true, beads, groups: [] };
 }
 
 function exampleTube() {
@@ -112,7 +113,7 @@ export function createBlankProject(mode = 'strand') {
   const p = createProject();
   p.name = { strand: 'Nowy naszyjnik', tube: 'Nowy wężyk', stitch: 'Nowy ścieg', figure: 'Nowa figurka' }[mode] || 'Nowy projekt';
   p.mode = mode;
-  p.strand = { count: 300, wrap: 30, symmetric: true, pendant: false, beads: new Array(300).fill(0) };
+  p.strand = { count: 300, wrap: 30, symmetric: true, pendant: false, beads: new Array(300).fill(0), groups: [] };
   p.tube = { around: 6, rows: 40, beads: new Array(240).fill(0) };
   p.stitch = blankStitch();
   p.figure = { w: 9, d: 9, h: 10, mirror: true, voxels: new Array(810).fill(EMPTY) };
@@ -145,6 +146,7 @@ export function normalizeProject(raw) {
   s.count = clamp(s.count, LIMITS.strandCount);
   s.wrap = clamp(s.wrap, LIMITS.strandWrap);
   s.beads = Array.from({ length: s.count }, (_, i) => fixColor((s.beads || [])[i] ?? 0));
+  s.groups = fixGroups(raw.strand?.groups, s.count);
   p.strand = s;
   const t = { ...base.tube, ...(raw.tube || {}) };
   t.around = clamp(t.around, LIMITS.tubeAround);
@@ -171,6 +173,7 @@ export function resizeStrand(p, count, wrap) {
   const old = s.beads;
   s.beads = Array.from({ length: count }, (_, i) => (i < old.length ? old[i] : 0));
   s.count = count;
+  trimGroups(s);
   if (wrap !== undefined) s.wrap = clamp(wrap, LIMITS.strandWrap);
 }
 
@@ -215,12 +218,40 @@ const strandMode = {
     const rowLabels = Array.from({ length: rows }, (_, y) => ({ y, text: String(y * wrap + 1) }));
     const colLabels = Array.from({ length: Math.min(wrap, count) }, (_, x) => ({ x, text: String(x + 1) }));
     const center = count % 2 ? [(count - 1) / 2] : [count / 2 - 1, count / 2];
-    return { cells, width: wrap, height: rows, rowLabels, colLabels, marks: center, shape: 'side' };
+    // Motywy zaznaczamy obwódką; motyw dzielony między wiersze schematu ma kilka kawałków.
+    const bands = [];
+    for (const g of p.strand.groups) {
+      for (let i = g.start; i < g.start + g.n;) {
+        const y = Math.floor(i / wrap), x0 = i % wrap;
+        const x1 = Math.min(wrap - 1, x0 + (g.start + g.n - 1 - i));
+        bands.push({ y, x0, x1, kind: g.kind, first: i === g.start });
+        i += x1 - x0 + 1;
+      }
+    }
+    return { cells, width: wrap, height: rows, rowLabels, colLabels, marks: center, bands, shape: 'side' };
   },
   neighbors: (p, id) => [id - 1, id + 1].filter((n) => n >= 0 && n < p.strand.count),
-  mirror: (p, id) => (p.strand.symmetric ? p.strand.count - 1 - id : null),
+  mirror: (p, id) => (p.strand.symmetric ? mirrorBead(p.strand, id) : null),
   allBeads: (p) => p.strand.beads,
 };
+
+// Lustrzany koralik po drugiej stronie środka. W motywach odpowiada sobie rola:
+// płatek ↔ płatek, środek ↔ środek, koralik zwrotny ↔ koralik zwrotny.
+function mirrorBead(s, id) {
+  const inGroup = (i) => s.groups.find((g) => i >= g.start && i < g.start + g.n);
+  const g = inGroup(id);
+  if (!g) {
+    const m = s.count - 1 - id;
+    return inGroup(m) ? null : m;
+  }
+  const twin = s.groups.find((q) => q.start === s.count - g.start - g.n && q.kind === g.kind && q.n === g.n);
+  if (!twin) return null;
+  if (twin === g) return g.kind === 'loop' ? g.start + g.n - 1 - (id - g.start) : null;
+  const k = id - g.start;
+  if (g.kind === 'daisy') return twin.start + (k === g.n - 1 ? k : g.n - 2 - k);
+  if (g.kind === 'dangle') return twin.start + k;
+  return twin.start + g.n - 1 - k;
+}
 
 // Wężyk szydełkowy: koraliki układają się w spiralę. Na obwodzie mieści się
 // around + 0.5 koralika, więc każdy rząd przesuwa się o pół koralika.
@@ -335,9 +366,7 @@ export function floodFill(p, ui, startId, color) {
 // Powiela pierwsze `len` koralików (sznurek) lub rzędów (wężyk) na całą długość.
 export function repeatPattern(p, len) {
   if (p.mode === 'strand') {
-    const s = p.strand;
-    len = Math.max(1, Math.min(s.count, len | 0));
-    for (let i = len; i < s.count; i++) s.beads[i] = s.beads[i % len];
+    repeatWithMotifs(p.strand, len);
   } else if (p.mode === 'stitch') {
     repeatStitchRows(p.stitch, p.stitch.beads, len);
   } else if (p.mode === 'tube') {
@@ -351,8 +380,7 @@ export function repeatPattern(p, len) {
 
 // Kopiuje lewą połowę sznurka na prawą (od środka na zewnątrz).
 export function mirrorStrand(p) {
-  const s = p.strand;
-  for (let i = 0; i < Math.floor(s.count / 2); i++) s.beads[s.count - 1 - i] = s.beads[i];
+  mirrorWithMotifs(p.strand);
 }
 
 export function copyLayer(p, from, to) {
@@ -447,7 +475,7 @@ export function usage(p) {
 // Rozmiar gotowej rzeczy w milimetrach.
 export function dimensions(p) {
   if (p.mode === 'strand') {
-    const mm = p.strand.beads.reduce((a, c) => a + beadOf(p, c).h, 0);
+    const mm = strandSlots(p.strand, (c) => beadOf(p, c)).reduce((a, s) => a + s.len, 0);
     return { label: 'Długość sznurka', value: `${(mm / 10).toFixed(1)} cm` };
   }
   const b = baseBead(p);
@@ -489,11 +517,25 @@ export function instructions(p) {
   const runText = (r) => `${r.n}× ${name(r.color)}`;
   const lines = [];
   if (p.mode === 'strand') {
-    lines.push({ head: 'Kolejność nawlekania', note: 'Od zapięcia do zapięcia. Numery to pozycje koralików.' });
-    for (const r of runs(p.strand.beads)) {
-      const range = r.n === 1 ? `${r.start + 1}` : `${r.start + 1}–${r.start + r.n}`;
-      lines.push({ num: range, text: runText(r), color: r.color });
+    const s = p.strand;
+    lines.push({
+      head: 'Kolejność nawlekania',
+      note: s.groups.length
+        ? 'Od zapięcia do zapięcia. Numery to pozycje koralików; przy motywach jest opis, kiedy przełożyć igłę.'
+        : 'Od zapięcia do zapięcia. Numery to pozycje koralików.',
+    });
+    const range = (a, n) => (n === 1 ? `${a + 1}` : `${a + 1}–${a + n}`);
+    let buf = [];
+    const flush = () => {
+      for (const r of runs(buf.map((i) => s.beads[i]))) lines.push({ num: range(buf[0] + r.start, r.n), text: runText(r), color: r.color });
+      buf = [];
+    };
+    for (const slot of strandSlots(s, (c) => beadOf(p, c))) {
+      if (slot.type === 'bead') { buf.push(slot.i); continue; }
+      flush();
+      lines.push(...motifLines(p, slot.g, runText, range));
     }
+    flush();
   } else if (p.mode === 'stitch') {
     lines.push(...stitchInstructions(p.stitch, p.stitch.beads, runText));
   } else if (p.mode === 'tube') {
@@ -529,6 +571,36 @@ export function instructions(p) {
     }
   }
   return lines;
+}
+
+// Opis jednego motywu: co nawlec i kiedy przełożyć igłę.
+function motifLines(p, g, runText, range) {
+  const s = p.strand;
+  const list = s.beads.slice(g.start, g.start + g.n);
+  const text = (from, to) => runs(list.slice(from, to)).map(runText).join(', ');
+  const num = `${MOTIFS[g.kind].name} ${range(g.start, g.n)}`;
+  if (g.kind === 'daisy') {
+    const petals = g.n - 1;
+    const opposite = Math.floor(petals / 2) + 1;
+    return [{
+      num,
+      text: `płatki: ${text(0, petals)} → przełóż igłę przez 1. płatek, środek: ${text(petals)} → przełóż przez ${opposite}. płatek`,
+    }];
+  }
+  if (g.kind === 'dangle') {
+    return [{ num, text: `${text(0, g.n - 1)}, zwrotny: ${text(g.n - 1)} → wróć igłą przez ${plural(g.n - 1, 'koralik', 'koraliki', 'koralików')} frędzla` }];
+  }
+  return [{ num, text: `${text(0)} → zamknij pętelkę: przełóż igłę przez koralik przed pętelką` }];
+}
+
+// Opis koralika do paska stanu, np. „Stokrotka · płatek 3 z 6”.
+export function motifRoleText(p, i) {
+  const g = p.strand.groups.find((q) => i >= q.start && i < q.start + q.n);
+  if (!g) return '';
+  const r = roleInGroup(g, i);
+  if (g.kind === 'daisy') return r.part === 'center' ? 'Stokrotka · środek' : `Stokrotka · płatek ${r.k + 1} z ${g.n - 1}`;
+  if (g.kind === 'dangle') return r.part === 'turn' ? 'Frędzel · koralik zwrotny' : `Frędzel · ${r.k + 1} z ${g.n}`;
+  return `Pętelka · ${r.k + 1} z ${g.n}`;
 }
 
 export function instructionsText(p) {

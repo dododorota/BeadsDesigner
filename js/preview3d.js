@@ -5,6 +5,7 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/OrbitControls.js';
 import { RoomEnvironment } from 'three/addons/RoomEnvironment.js';
 import { beadType } from './beads.js';
+import { strandSlots } from './motifs.js';
 import { EMPTY, baseBead, beadOf, stitchLayoutOf } from './model.js';
 
 const UP = new THREE.Vector3(0, 1, 0);
@@ -127,6 +128,56 @@ function figureBeads(fig, base, maxLayer, offset = new THREE.Vector3()) {
   return out;
 }
 
+// Motyw ułożony wokół punktu na naszyjniku. Naszyjnik leży w płaszczyźnie XY,
+// więc „na zewnątrz” to kierunek od środka naszyjnika, a „w dół” to -Y.
+function motifBeads(p, g, at, tan) {
+  const s = p.strand;
+  const color = (k) => s.beads[g.start + k];
+  const type = (k) => beadOf(p, color(k));
+  let out = new THREE.Vector3(tan.y, -tan.x, 0);
+  if (out.dot(at) < 0) out.negate();
+  const res = [];
+  if (g.kind === 'daisy') {
+    // Płatki w kółku wokół środka, w płaszczyźnie naszyjnika; pierwszy płatek od strony, z której idzie nitka.
+    const petals = g.n - 1, petal = type(0), center = type(petals);
+    const rc = center.d / 2 + petal.d / 2;
+    for (let k = 0; k < petals; k++) {
+      const phi = Math.PI + (2 * Math.PI * k) / petals;
+      const dir = tan.clone().multiplyScalar(Math.cos(phi)).addScaledVector(out, Math.sin(phi));
+      const axis = tan.clone().multiplyScalar(-Math.sin(phi)).addScaledVector(out, Math.cos(phi));
+      res.push({ pos: at.clone().addScaledVector(dir, rc), axis, color: color(k) });
+    }
+    res.push({ pos: at.clone(), axis: tan.clone(), color: color(petals) });
+  } else if (g.kind === 'loop') {
+    // Kółko zaczepione w jednym punkcie, odstające na zewnątrz albo do środka.
+    const b = type(0);
+    const lens = Array.from({ length: g.n }, (_, k) => type(k).h * 1.05);
+    const circ = lens.reduce((a, l) => a + l, 0);
+    const R = Math.max(circ / (2 * Math.PI), b.d);
+    const side = g.side === 'in' ? -1 : 1;
+    const dirOut = out.clone().multiplyScalar(side);
+    const c = at.clone().addScaledVector(dirOut, R + b.d * 0.3);
+    let acc = 0;
+    for (let k = 0; k < g.n; k++) {
+      const alpha = (2 * Math.PI * (acc + lens[k] / 2)) / circ * (g.rev ? -1 : 1);
+      acc += lens[k];
+      const dir = dirOut.clone().multiplyScalar(-Math.cos(alpha)).addScaledVector(tan, Math.sin(alpha));
+      const axis = dirOut.clone().multiplyScalar(Math.sin(alpha)).addScaledVector(tan, Math.cos(alpha));
+      res.push({ pos: c.clone().addScaledVector(dir, R), axis, color: color(k) });
+    }
+  } else {
+    // Frędzel zwisa pionowo w dół, ostatni koralik (zwrotny) na końcu.
+    const down = new THREE.Vector3(0, -1, 0);
+    let y = type(0).d * 0.6;
+    for (let k = 0; k < g.n; k++) {
+      const t = type(k);
+      res.push({ pos: at.clone().addScaledVector(down, y + t.h / 2), axis: down.clone(), color: color(k) });
+      y += t.h * 1.02;
+    }
+  }
+  return res;
+}
+
 // Ścieg płaski leży przodem do kamery; rurka stoi pionowo. Kąt `a` to kierunek
 // otworu w płaszczyźnie robótki (0 = poziomo, π/2 = pionowo).
 function stitchBeads(p) {
@@ -158,17 +209,19 @@ export function buildBeads(p, ui) {
   if (p.mode === 'strand') {
     const s = p.strand;
     // Każdy koralik zajmuje na nitce tyle, ile ma długości — rurka 6 mm
-    // zajmuje więcej miejsca niż koralik 15/0.
-    const lengths = s.beads.map((c) => beadOf(p, c).h * 1.02);
-    const total = lengths.reduce((a, l) => a + l, 0);
+    // zajmuje więcej miejsca niż koralik 15/0. Motyw zajmuje tyle, ile jest szeroki.
+    const slots = strandSlots(s, (c) => beadOf(p, c));
+    const total = slots.reduce((a, sl) => a + sl.len * 1.02, 0);
     const gap = Math.max(6, b.d * 3);
     const curve = strandCurve(total + gap);
     let along = gap / 2;
-    beads = s.beads.map((color, i) => {
-      const { p: pos, tan } = curve.at(along + lengths[i] / 2);
-      along += lengths[i];
-      return { pos, axis: tan, color };
-    });
+    for (const sl of slots) {
+      const len = sl.len * 1.02;
+      const { p: pos, tan } = curve.at(along + len / 2);
+      along += len;
+      if (sl.type === 'bead') beads.push({ pos, axis: tan, color: s.beads[sl.i] });
+      else beads.push(...motifBeads(p, sl.g, pos, tan));
+    }
     extras.push({ kind: 'thread', points: curve.points });
     extras.push({ kind: 'clasp', pos: curve.at(0).p, size: b.d });
     if (s.pendant && p.figure.voxels.some((c) => c !== EMPTY)) {

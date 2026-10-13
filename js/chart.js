@@ -421,6 +421,32 @@ export class ChartEditor {
       }
     }
 
+    // Motywy na naszyjniku: obwódka wokół ich koralików i znaczek rodzaju.
+    if (layout.bands?.length) {
+      const glyph = { daisy: '✿', loop: '◯', dangle: '↓' };
+      g.save();
+      g.strokeStyle = tok('--accent');
+      g.lineWidth = 2;
+      for (const b of layout.bands) {
+        g.beginPath();
+        g.roundRect(MARGIN.left + b.x0 * S + 1, MARGIN.top + b.y * S + 1, (b.x1 - b.x0 + 1) * S - 2, S - 2, S * 0.3);
+        g.stroke();
+        if (b.first && S >= 14) {
+          const fx = MARGIN.left + b.x0 * S, fy = MARGIN.top + b.y * S;
+          g.fillStyle = tok('--accent');
+          g.beginPath();
+          g.arc(fx + 2, fy + 2, Math.max(5, S * 0.24), 0, Math.PI * 2);
+          g.fill();
+          g.fillStyle = tok('--accent-ink');
+          g.font = `${Math.max(8, S * 0.32)}px ${tok('--font-body') || 'sans-serif'}`;
+          g.textAlign = 'center';
+          g.textBaseline = 'middle';
+          g.fillText(glyph[b.kind] || '•', fx + 2, fy + 2.5);
+        }
+      }
+      g.restore();
+    }
+
     // Środek naszyjnika.
     g.fillStyle = tok('--accent');
     for (const id of layout.marks) {
