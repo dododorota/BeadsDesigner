@@ -7,17 +7,20 @@ Aktualizujemy go przy każdym etapie pracy (checkpoint), najnowsze wpisy są na 
 
 ---
 
-## Handover — gdzie skończyliśmy (2026-10-11)
+## Handover — gdzie skończyliśmy (aktualizacja 2026-10-13)
 
-**Stan kodu:** etap 1 gotowy i wypchnięty na `main` (commit `5dbbe68`): katalog koralików, obsługa
-dotyku i Apple Pencil, instalacja na ekranie początkowym, praca offline. 14 testów przechodzi.
-Lokalna gałąź nazywa się teraz `main` i śledzi `origin/main` — zwykły `git push` działa.
+**Stan kodu:** etapy 1 i 1b gotowe na `main`: katalog koralików, dotyk i Apple Pencil, instalacja
+na ekranie początkowym, praca offline, **„Moje projekty”** (wiele projektów na urządzeniu, miniaturki,
+zapis przy zamykaniu, eksport wszystkich do jednego pliku). 20 testów przechodzi.
+Lokalna gałąź nazywa się `main` i śledzi `origin/main` — zwykły `git push` działa.
 
-**Rozmowa urwała się na pytaniu: jak ma działać aplikacja na iPadzie i gdzie zapisywać projekty.**
+**Nadal otwarte: droga instalacji na iPadzie** (decyzje niżej). Etap 1b był wspólny dla wszystkich dróg,
+więc zrobiliśmy go bez czekania. Następny krok zależy od decyzji: 1c (aplikacja natywna) albo od razu etap 2.
 
-Jak jest teraz: jeden projekt naraz, autozapis w pamięci przeglądarki (`localStorage`), kopia ręczna
-przez „Zapisz plik” (`.beads.json`). Dane są osobne dla Safari i dla ikony z ekranu początkowego
-i znikają po usunięciu ikony / wyczyszczeniu danych witryny.
+Jak jest teraz z zapisem: projekty w IndexedDB na urządzeniu, natychmiastowa kopia bieżącego projektu
+w `localStorage` przy chowaniu aplikacji, eksport wszystkiego do pliku `.beads.json`. Dane są nadal
+osobne dla Safari i dla ikony z ekranu początkowego i znikają po usunięciu ikony / danych witryny —
+dlatego aplikacja przypomina o kopii zapasowej (kropka przy „Moje projekty”, gdy kopii nie ma albo ma ponad 14 dni).
 
 ### Decyzje do podjęcia (po stronie Doroty)
 
@@ -43,12 +46,8 @@ Nie używamy płatnych „serwisów do podpisywania” ani cudzych certyfikatów
 
 Pierwszy krok jest ten sam niezależnie od wybranej drogi:
 
-1. **Etap 1b — „Moje projekty” i bezpieczny zapis** (⏳, przed etapem 2):
-   - lista wielu projektów z miniaturkami: otwórz, duplikuj, usuń, zmień nazwę; „Nowy” nie kasuje poprzedniego;
-   - warstwa zapisu z dwiema implementacjami: przeglądarka (IndexedDB zamiast `localStorage`) i aplikacja natywna (pliki w Documents przez Capacitor Filesystem), ten sam interfejs;
-   - zapis od razu przy schowaniu aplikacji (`pagehide` / `visibilitychange`), zamiast tylko po 0,4 s;
-   - prośba o trwałą pamięć (`navigator.storage.persist()`);
-   - „Eksportuj wszystkie projekty” do jednego pliku + przypomnienie o kopii.
+1. ~~**Etap 1b — „Moje projekty” i bezpieczny zapis**~~ ✅ zrobione 2026-10-13 (szczegóły w dzienniku).
+   W `js/storage.js` jest miejsce na drugi „backend” — pliki w Dokumentach dla aplikacji natywnej (Capacitor Filesystem).
 2. **Jeśli wybrana droga B/C/D/E — etap 1c, aplikacja natywna:** opakowanie w Capacitor, budowanie
    niepodpisanego `.ipa` w GitHub Actions (macOS runner, darmowy dla publicznego repo), instrukcja
    instalacji krok po kroku dla wybranego narzędzia. Od Doroty: Apple ID, komputer z Windowsem
@@ -62,7 +61,7 @@ Pierwszy krok jest ten sam niezależnie od wybranej drogi:
 | Etap | Co | Stan |
 | --- | --- | --- |
 | 1 | Katalog koralików (kształty i rozmiary Miyuki/Toho w palecie) + obsługa iPada | ✅ (czeka na sprawdzenie na prawdziwym iPadzie) |
-| 1b | „Moje projekty”: wiele projektów, zapis w IndexedDB / plikach, zapis przy zamykaniu, eksport wszystkiego | ⏳ następny |
+| 1b | „Moje projekty”: wiele projektów, zapis w IndexedDB, zapis przy zamykaniu, eksport wszystkiego | ✅ |
 | 1c | Aplikacja natywna na iPada (Capacitor + `.ipa` z GitHub Actions), jeśli wybrana droga B–E | ⏳ czeka na decyzję |
 | 2 | Ściegi płaskie i rurkowe na wspólnym „silniku ściegów”: peyote, brick, herringbone (proste i skręcone), ladder, square/krosno, CRAW, PRAW-3…6; obecny wężyk szydełkowy też tu trafi | ⏳ |
 | 3 | Naszyjnik z motywami: kwiatki (daisy chain), pętelki, perły i koraliki ozdobne między zwykłymi | ⏳ |
@@ -115,8 +114,18 @@ perełki 4 mm w „ścianach”).
 ### Zapis i eksport
 | Funkcja | Stan |
 | --- | --- |
-| Autozapis w przeglądarce, pliki `.beads.json`, eksport PNG schematu i podglądu | ✅ |
+| „Moje projekty”: wiele projektów na urządzeniu, miniaturki z podglądu 3D, otwórz / duplikuj / usuń | ✅ |
+| „Nowy” nie kasuje poprzedniego projektu; nowe projekty nazwane według rodzaju | ✅ |
+| Autozapis do IndexedDB (0,4 s po zmianie) + natychmiast przy chowaniu / zamykaniu aplikacji | ✅ |
+| Szybka kopia bieżącego projektu w `localStorage` — odzyskiwana, gdy zapis do bazy nie zdążył | ✅ |
+| Prośba o trwałą pamięć (`navigator.storage.persist`) | ✅ |
+| „Eksportuj wszystkie” do jednego pliku; „Otwórz plik” dodaje projekty (pojedyncze albo całą bibliotekę) zamiast zastępować | ✅ |
+| Przypomnienie o kopii zapasowej (brak kopii albo starsza niż 14 dni i są nowsze zmiany) | ✅ |
+| Projekt ze starej wersji (jeden zapis w przeglądarce) przenoszony do biblioteki przy pierwszym uruchomieniu | ✅ |
+| Pliki `.beads.json`, eksport PNG schematu i podglądu | ✅ |
 | Stare pliki (jeden rozmiar dla projektu) wczytują się poprawnie | ✅ |
+| Zmiana nazwy projektu z poziomu listy (teraz: pole nazwy na górnym pasku) | 💡 |
+| Pliki w Dokumentach iPada (aplikacja natywna) | ⏳ etap 1c |
 
 ---
 
@@ -130,6 +139,8 @@ Gesty były testowane w Chrome symulowanymi zdarzeniami dotyku i rysika. Na urz�
 - [ ] „Zapisz plik” zapisuje do aplikacji Pliki, „Otwórz” widzi pliki `.beads.json`
 - [ ] instalacja przez Udostępnij → Do ekranu początkowego; ikona i pełny ekran
 - [ ] po instalacji aplikacja otwiera się w trybie samolotowym
+- [ ] „Moje projekty”: projekty zostają po zamknięciu aplikacji z przełącznika aplikacji (przesunięcie w górę)
+- [ ] „Eksportuj wszystkie” zapisuje plik w aplikacji Pliki; „Otwórz plik” dodaje projekty z tego pliku
 
 Wymagany iPadOS 16.4 lub nowszy (import map w Safari).
 
@@ -146,10 +157,26 @@ Wymagany iPadOS 16.4 lub nowszy (import map w Safari).
   kształtów jest szacowana z wymiarów (objętość szkła), więc to przybliżenie.
 - **Offline** działa tylko na https, żeby lokalnie (Live Server) zawsze widzieć najnowszy kod.
 - **Repo publiczne**, żeby darmowo publikować aplikację na GitHub Pages.
+- **Biblioteka projektów w IndexedDB**, z zapasowym `localStorage` i pamięcią, gdy IndexedDB nie działa.
+  Kod zapisu jest za jednym interfejsem (`all/get/put/del/getMeta/setMeta`), żeby aplikacja natywna
+  mogła podstawić zapis do plików bez zmian w reszcie aplikacji.
+- **Otwarcie projektu nie zmienia daty „ostatnio zmieniany”** — lista jest sortowana według prawdziwych zmian.
+- **Format pliku eksportu:** `{ format: "beadsdesigner-library", version: 1, exported, projects: [{ updated, project }] }`;
+  pojedynczy projekt to sam obiekt projektu (`version: 2`). Oba mają rozszerzenie `.beads.json`.
 
 ---
 
 ## Dziennik
+
+### 2026-10-13 — Etap 1b: „Moje projekty”
+- Nowy moduł `js/storage.js`: biblioteka projektów (IndexedDB → localStorage → pamięć), eksport/import.
+- Ekran „Moje projekty”: karty z miniaturką, rodzajem i datą; otwórz, duplikuj, usuń; nowy projekt; otwórz plik; eksportuj wszystkie.
+- Górny pasek: „Moje projekty” (z kropką przypomnienia o kopii), „Nowy”, „Zapisz plik”.
+- Zapis przy `pagehide` / `visibilitychange`, szybka kopia w `localStorage`, odzyskiwanie po przerwanym zapisie.
+- Przeniesienie projektu ze starego zapisu przy pierwszym uruchomieniu.
+- Testy: 20 (6 nowych dla biblioteki). Sprawdzone w Chrome (sterowanym przez DevTools, prawdziwy czas):
+  migracja, przeładowanie, nowy projekt, lista z miniaturkami, duplikat, usunięcie, eksport, przełączanie,
+  zapis przy natychmiastowym zamknięciu — wszystkie 8 scenariuszy działa.
 
 ### 2026-10-11 — Rozmowa o instalacji i zapisie (bez zmian w kodzie)
 - Omówione drogi instalacji: ekran początkowy, SideStore, AltStore, TrollStore, TestFlight (tabela w Handover).

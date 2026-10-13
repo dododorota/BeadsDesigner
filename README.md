@@ -28,7 +28,9 @@ Figurkę można zawiesić na naszyjniku: w trybie *Naszyjnik* zaznacz
   (nieprzezroczysty, przezroczysty, matowy, perłowy, metaliczny). Widać je na schemacie i w podglądzie 3D.
 - **Zużycie**: liczba koralików każdego rodzaju i przybliżona waga w gramach.
 - **Instrukcja**: kolejność nawlekania (naszyjnik, wężyk — od końca) albo warstwy rząd po rzędzie (figurka); można ją skopiować.
-- **Zapis**: projekt zapisuje się sam w przeglądarce; „Zapisz plik” / „Otwórz” do plików `.beads.json`; eksport schematu i podglądu do PNG.
+- **Moje projekty**: wiele projektów na urządzeniu, z miniaturkami; otwórz, duplikuj, usuń. Projekt zapisuje się sam
+  (także w chwili zamknięcia aplikacji). „Eksportuj wszystkie” zapisuje kopię zapasową w jednym pliku,
+  „Otwórz plik” dodaje projekty z pliku. „Zapisz plik” zapisuje bieżący projekt; eksport schematu i podglądu do PNG.
 
 Na iPadzie: stuknięcie maluje, przytrzymanie palca to pipeta, dwa palce przybliżają i przesuwają schemat.
 Z Apple Pencil maluje rysik, a palec tylko przesuwa.
@@ -83,7 +85,8 @@ js/beads.js           katalog kształtów i rozmiarów koralików, wykończenia,
 js/model.js           tryby, układ schematu, symetria, wypełnianie, zużycie, instrukcje
 js/chart.js           schemat 2D na kanwie
 js/preview3d.js       podgląd 3D (three.js)
-js/main.js            spina wszystko: narzędzia, historia, zapis
+js/main.js            spina wszystko: narzędzia, historia, zapis, „Moje projekty”
+js/storage.js         biblioteka projektów na urządzeniu (IndexedDB), eksport i import
 vendor/               three.js r169 (lokalnie, bez CDN)
 scripts/              składanie wersji jednoplikowej, rysowanie ikon
 tests/                testy logiki

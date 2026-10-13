@@ -400,6 +400,60 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .steps li.head p { margin: 2px 0 8px; color: var(--ink-soft); font-size: 12.5px; }
 .steps li.sub { font-weight: 600; margin-top: 10px; }
 
+/* ------------------------------------------------------------ moje projekty */
+.btn-badge { position: relative; }
+.btn-badge.has-badge::after {
+  content: ''; position: absolute; top: -3px; right: -3px;
+  width: 9px; height: 9px; border-radius: 50%;
+  background: var(--accent); border: 2px solid var(--bg);
+}
+.sheet-backdrop {
+  position: fixed; inset: 0; z-index: 15;
+  background: rgba(20, 14, 26, 0.45);
+  display: grid; place-items: center;
+  padding: max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom));
+}
+.sheet {
+  background: var(--bg); color: var(--ink);
+  border-radius: 16px; border: 1px solid var(--line);
+  width: min(980px, 100%); max-height: 100%;
+  display: flex; flex-direction: column;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+}
+.sheet-head {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+  padding: 16px 18px 8px;
+}
+.sheet-head h2 { margin: 0; font-family: var(--font-display); font-size: 21px; }
+.lib-count { font-size: 12.5px; color: var(--ink-soft); }
+.sheet-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.lib-backup { margin: 0 18px 10px; font-size: 12.5px; color: var(--ink-soft); }
+.lib-backup.warn { color: var(--ink); background: var(--accent-soft); border-radius: 8px; padding: 8px 10px; }
+.lib-grid {
+  list-style: none; margin: 0; padding: 4px 18px 18px;
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 12px;
+  overflow-y: auto;
+}
+.lib-card {
+  background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+  display: flex; flex-direction: column; overflow: hidden;
+}
+.lib-card.current { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.lib-open {
+  border: 0; background: none; padding: 0; cursor: pointer; text-align: left;
+  display: flex; flex-direction: column; gap: 2px;
+}
+.lib-thumb {
+  aspect-ratio: 1 / 1; width: 100%; display: block;
+  background: var(--preview-bg);
+}
+.lib-thumb img { width: 100%; height: 100%; object-fit: contain; display: block; }
+.lib-name { font-weight: 600; padding: 8px 10px 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lib-meta { font-size: 12px; color: var(--ink-soft); padding: 0 10px 6px; }
+.lib-actions { display: flex; gap: 6px; padding: 0 10px 10px; }
+.lib-actions .btn { flex: 1; }
+
 /* ------------------------------------------------------------ okno dialogowe i komunikaty */
 .dialog-backdrop {
   position: fixed; inset: 0; z-index: 20;

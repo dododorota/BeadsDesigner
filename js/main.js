@@ -8,8 +8,8 @@ import {
 } from './model.js';
 import { ChartEditor } from './chart.js';
 import { Preview3D } from './preview3d.js';
+import { Library, openBackend, parseImport } from './storage.js';
 
-const STORAGE_KEY = 'beadsdesigner.project.v1';
 const IN_ARTIFACT = Boolean(window.BEADS_ARTIFACT);
 
 const $ = (id) => document.getElementById(id);
@@ -31,34 +31,78 @@ const MODE_HINTS = {
 
 // ---------------------------------------------------------------- stan
 
-const restored = loadSaved();
-let project = restored || createProject();
+let project = createProject();
+let currentId = null;
+let library = null;
 const ui = { tool: 'pencil', color: 0, layer: 0, buildView: false, hover: null };
 const history = { undo: [], redo: [] };
 let strokeChanged = false;
 let strokeActive = false;
 
-function loadSaved() {
+// ---------------------------------------------------------------- zapis
+
+// Projekt zapisuje się sam: po każdej zmianie (z opóźnieniem 0,4 s) do biblioteki
+// projektów, a od razu, gdy aplikacja chowa się w tle albo zamyka. Dodatkowo trzymamy
+// szybką, synchroniczną kopię bieżącego projektu w localStorage — na wypadek, gdyby
+// system zamknął aplikację, zanim zapis do IndexedDB się skończy.
+const AUTOSAVE_KEY = 'beadsdesigner.autosave';
+const LEGACY_KEY = 'beadsdesigner.project.v1';
+const THUMB_EVERY_MS = 4000;
+const BACKUP_DAYS = 14;
+
+let saveTimer = null;
+let dirty = false;
+let lastThumb = 0;
+
+function setSaveState(text) {
+  $('saveState').textContent = text;
+}
+
+function scheduleSave() {
+  if (!library) return;
+  dirty = true;
+  setSaveState('Zapisywanie…');
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => saveNow(), 400);
+}
+
+function writeAutosave(updated) {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? normalizeProject(JSON.parse(raw)) : null;
+    localStorage.setItem(AUTOSAVE_KEY, JSON.stringify({ id: currentId, updated, project }));
+  } catch { /* brak miejsca albo tryb prywatny — zostaje IndexedDB */ }
+}
+
+function readAutosave() {
+  try { return JSON.parse(localStorage.getItem(AUTOSAVE_KEY)); } catch { return null; }
+}
+
+async function saveNow({ thumb = false } = {}) {
+  clearTimeout(saveTimer);
+  saveTimer = null;
+  if (!library || !currentId) return;
+  const wasDirty = dirty;
+  dirty = false;
+  const now = Date.now();
+  const makeThumb = thumb || (wasDirty && now - lastThumb > THUMB_EVERY_MS);
+  if (!wasDirty && !makeThumb) return;
+  if (makeThumb) lastThumb = now;
+  if (wasDirty) writeAutosave(now);
+  try {
+    // Miniaturka bez zmian w projekcie nie przesuwa go na liście „ostatnio zmieniane”.
+    const updated = wasDirty ? now : (await library.updatedAt(currentId)) ?? now;
+    await library.save(currentId, project, makeThumb ? preview.thumbnail() : undefined, updated);
+    setSaveState(library.backend.kind === 'memory' ? 'Zapisz projekt do pliku — to urządzenie nie pozwala zapisywać' : 'Zapisano na tym urządzeniu');
   } catch {
-    return null;
+    dirty = true;
+    setSaveState('Nie udało się zapisać — zapisz projekt do pliku');
   }
 }
 
-let saveTimer = null;
-function scheduleSave() {
-  $('saveState').textContent = 'Zapisywanie…';
-  clearTimeout(saveTimer);
-  saveTimer = setTimeout(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(project));
-      $('saveState').textContent = 'Zapisano w przeglądarce';
-    } catch {
-      $('saveState').textContent = 'Zapisz projekt do pliku';
-    }
-  }, 400);
+// iPad może zamknąć aplikację w tle bez ostrzeżenia — zapisujemy, gdy tylko znika z ekranu.
+function flushOnHide() {
+  if (!dirty) return;
+  writeAutosave(Date.now());
+  saveNow();
 }
 
 function snapshot() {
@@ -508,43 +552,32 @@ function bind() {
     if (url) download(await (await fetch(url)).blob(), `${slug()}-podglad.png`);
   });
 
-  $('btnNew').addEventListener('click', async () => {
-    const choice = await ask('Nowy projekt', 'Obecny projekt zostanie zastąpiony. Jeśli chcesz go zachować, najpierw zapisz go do pliku.', [
-      { label: 'Anuluj', value: null },
-      { label: 'Przykłady', value: 'examples' },
-      { label: 'Pusty naszyjnik', value: 'strand', primary: true },
-      { label: 'Pusty wężyk', value: 'tube', primary: true },
-      { label: 'Pusta figurka', value: 'figure', primary: true },
-    ]);
-    if (!choice) return;
-    snapshot();
-    project = choice === 'examples' ? createProject() : createBlankProject(choice);
-    ui.color = 0; ui.layer = 0;
-    changed({ structure: true, fit: true });
+  $('btnNew').addEventListener('click', newProject);
+  $('btnLibrary').addEventListener('click', openLibrary);
+  $('libClose').addEventListener('click', closeLibrary);
+  $('libNew').addEventListener('click', newProject);
+  $('libImport').addEventListener('click', () => $('fileInput').click());
+  $('libExport').addEventListener('click', exportAll);
+  $('library').addEventListener('click', (e) => {
+    if (e.target === $('library')) return closeLibrary();
+    const btn = e.target.closest('[data-act]');
+    if (btn) libraryAction(btn.dataset.act, btn.closest('[data-id]').dataset.id);
   });
-  $('btnOpen').addEventListener('click', () => $('fileInput').click());
-  $('fileInput').addEventListener('change', async (e) => {
+  $('fileInput').addEventListener('change', (e) => {
     const file = e.target.files[0];
     e.target.value = '';
-    if (!file) return;
-    try {
-      const next = normalizeProject(JSON.parse(await file.text()));
-      snapshot();
-      project = next;
-      ui.color = 0; ui.layer = 0;
-      changed({ structure: true, fit: true });
-      toast(`Wczytano „${project.name}”`);
-    } catch {
-      toast('To nie jest plik projektu Beads Designer (.json).');
-    }
+    if (file) importFile(file);
   });
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') flushOnHide(); });
+  window.addEventListener('pagehide', flushOnHide);
   $('btnSave').addEventListener('click', () => {
     download(new Blob([JSON.stringify(project, null, 1)], { type: 'application/json' }), `${slug()}.beads.json`);
     toast('Projekt zapisany do pliku');
   });
 
   window.addEventListener('keydown', (e) => {
-    if (e.target.closest('input, select, textarea') || !$('dialog').hidden) return;
+    if (!$('library').hidden && e.key === 'Escape' && $('dialog').hidden) return closeLibrary();
+    if (e.target.closest('input, select, textarea') || !$('dialog').hidden || !$('library').hidden) return;
     const k = e.key.toLowerCase();
     if ((e.ctrlKey || e.metaKey) && k === 'z') { e.preventDefault(); e.shiftKey ? redo() : undo(); return; }
     if ((e.ctrlKey || e.metaKey) && k === 'y') { e.preventDefault(); redo(); return; }
@@ -564,6 +597,206 @@ function bind() {
   });
 }
 
+// ---------------------------------------------------------------- moje projekty
+
+const MODE_NAMES = { strand: 'Naszyjnik', tube: 'Wężyk', figure: 'Figurka 3D' };
+
+// Przełącza edytor na inny projekt. Nie zapisuje go od nowa — samo otwarcie
+// nie zmienia daty „ostatnio zmieniany”.
+function showProject(p, id) {
+  project = p;
+  currentId = id;
+  history.undo.length = 0;
+  history.redo.length = 0;
+  ui.color = 0;
+  ui.layer = 0;
+  dirty = false;
+  library.setMeta('current', id).catch(() => {});
+  renderControls();
+  fitZoom();
+  renderPalette();
+  renderChart();
+  renderInfo();
+  schedulePreview();
+}
+
+async function openProject(id) {
+  if (id === currentId) return closeLibrary();
+  await saveNow({ thumb: true });
+  const p = await library.load(id);
+  if (!p) return toast('Nie znaleziono projektu');
+  showProject(p, id);
+  closeLibrary();
+  setSaveState('Otwarto z „Moich projektów”');
+}
+
+async function addAndOpen(p) {
+  await saveNow({ thumb: true });
+  const id = await library.add(p);
+  showProject(p, id);
+  // Miniaturka nowego projektu powstanie, gdy podgląd 3D się narysuje.
+  dirty = true;
+  setTimeout(() => saveNow({ thumb: true }), 300);
+  return id;
+}
+
+async function newProject() {
+  const choice = await ask('Nowy projekt', 'Obecny projekt zostaje zapisany w „Moich projektach”.', [
+    { label: 'Anuluj', value: null },
+    { label: 'Przykład', value: 'example' },
+    { label: 'Naszyjnik', value: 'strand', primary: true },
+    { label: 'Wężyk', value: 'tube', primary: true },
+    { label: 'Figurka', value: 'figure', primary: true },
+  ]);
+  if (!choice) return;
+  await addAndOpen(choice === 'example' ? createProject() : createBlankProject(choice));
+  closeLibrary();
+}
+
+function relativeDate(ms) {
+  const d = new Date(ms), now = new Date();
+  const time = d.toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' });
+  const days = Math.round((new Date(now.toDateString()) - new Date(d.toDateString())) / 86400000);
+  if (days === 0) return `dziś, ${time}`;
+  if (days === 1) return `wczoraj, ${time}`;
+  return d.toLocaleDateString('pl-PL', { day: 'numeric', month: 'short', year: d.getFullYear() === now.getFullYear() ? undefined : 'numeric' });
+}
+
+function daysSince(ms) {
+  return Math.floor((Date.now() - ms) / 86400000);
+}
+
+// Czy warto przypomnieć o kopii zapasowej: nigdy jej nie było albo jest stara,
+// a od tamtej pory coś się zmieniło.
+function backupOverdue(list, lastExport) {
+  if (!list.length) return false;
+  if (!lastExport) return true;
+  return daysSince(lastExport) >= BACKUP_DAYS && list.some((p) => p.updated > lastExport);
+}
+
+async function refreshBackupBadge() {
+  const [list, lastExport] = await Promise.all([library.list(), library.getMeta('lastExport')]);
+  $('btnLibrary').classList.toggle('has-badge', backupOverdue(list, lastExport));
+}
+
+async function renderLibrary() {
+  const [list, lastExport] = await Promise.all([library.list(), library.getMeta('lastExport')]);
+  const esc = (s) => String(s).replace(/[&<>"]/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
+  const note = $('libBackup');
+  note.classList.toggle('warn', backupOverdue(list, lastExport));
+  note.textContent = !lastExport
+    ? 'Projekty są zapisane tylko na tym urządzeniu. „Eksportuj wszystkie” zapisze je w jednym pliku — np. w aplikacji Pliki albo na iCloud Drive.'
+    : `Ostatnia kopia zapasowa: ${relativeDate(lastExport)}${daysSince(lastExport) >= BACKUP_DAYS ? ' — czas na nową.' : '.'}`;
+  $('libCount').textContent = `${list.length} ${list.length === 1 ? 'projekt' : list.length % 10 >= 2 && list.length % 10 <= 4 && (list.length % 100 < 12 || list.length % 100 > 14) ? 'projekty' : 'projektów'}`;
+  $('libList').innerHTML = list.map((p) => `
+    <li class="lib-card${p.id === currentId ? ' current' : ''}" data-id="${esc(p.id)}">
+      <button type="button" class="lib-open" data-act="open">
+        <span class="lib-thumb">${p.thumb ? `<img src="${p.thumb}" alt="">` : ''}</span>
+        <span class="lib-name">${esc(p.name || 'Bez nazwy')}</span>
+        <span class="lib-meta">${MODE_NAMES[p.mode] || ''} · ${relativeDate(p.updated)}${p.id === currentId ? ' · otwarty' : ''}</span>
+      </button>
+      <span class="lib-actions">
+        <button type="button" class="btn btn-small" data-act="dup">Duplikuj</button>
+        <button type="button" class="btn btn-small" data-act="del">Usuń</button>
+      </span>
+    </li>`).join('');
+}
+
+async function openLibrary() {
+  await saveNow({ thumb: true });
+  await renderLibrary();
+  $('library').hidden = false;
+  $('libClose').focus();
+}
+
+function closeLibrary() {
+  $('library').hidden = true;
+}
+
+async function libraryAction(act, id) {
+  if (act === 'open') return openProject(id);
+  if (act === 'dup') {
+    await saveNow({ thumb: true });
+    await library.duplicate(id);
+    toast('Projekt zduplikowany');
+    return renderLibrary();
+  }
+  if (act === 'del') {
+    const list = await library.list();
+    const p = list.find((q) => q.id === id);
+    const ok = await ask('Usunąć projekt?', `„${p?.name || 'Bez nazwy'}” zniknie z tego urządzenia. Tego nie da się cofnąć — chyba że masz go w pliku.`, [
+      { label: 'Anuluj', value: false },
+      { label: 'Usuń', value: true, primary: true },
+    ]);
+    if (!ok) return;
+    await library.remove(id);
+    // Szybka kopia nie może „wskrzesić” usuniętego projektu przy następnym uruchomieniu.
+    try { if (readAutosave()?.id === id) localStorage.removeItem(AUTOSAVE_KEY); } catch { /* bez localStorage nie ma kopii */ }
+    if (id === currentId) {
+      const rest = list.filter((q) => q.id !== id);
+      if (rest.length) showProject(await library.load(rest[0].id), rest[0].id);
+      else {
+        const blank = createBlankProject('strand');
+        showProject(blank, await library.add(blank));
+      }
+    }
+    toast('Projekt usunięty');
+    await renderLibrary();
+    refreshBackupBadge();
+  }
+}
+
+async function exportAll() {
+  await saveNow({ thumb: true });
+  const data = await library.exportAll();
+  const date = new Date().toISOString().slice(0, 10);
+  download(new Blob([JSON.stringify(data)], { type: 'application/json' }), `koraliki-wszystkie-projekty-${date}.beads.json`);
+  await library.setMeta('lastExport', Date.now());
+  toast(`Wyeksportowano ${data.projects.length} ${data.projects.length === 1 ? 'projekt' : 'projekty'}`);
+  await renderLibrary();
+  refreshBackupBadge();
+}
+
+// „Otwórz plik” niczego nie zastępuje: projekty z pliku dochodzą do biblioteki.
+async function importFile(file) {
+  let projects;
+  try {
+    projects = parseImport(JSON.parse(await file.text()));
+  } catch {
+    return toast('To nie jest plik projektu Beads Designer (.json).');
+  }
+  if (!projects.length) return toast('W pliku nie ma projektów.');
+  await saveNow({ thumb: true });
+  const ids = [];
+  for (const p of projects) ids.push(await library.add(p));
+  showProject(projects[0], ids[0]);
+  dirty = true;
+  setTimeout(() => saveNow({ thumb: true }), 300);
+  toast(projects.length === 1 ? `Dodano „${projects[0].name}”` : `Dodano ${projects.length} projektów`);
+  if (!$('library').hidden) renderLibrary();
+}
+
+// Pierwsze uruchomienie po aktualizacji: jedyny projekt ze starego zapisu trafia do biblioteki.
+async function migrateLegacy() {
+  if (await library.getMeta('migratedV1')) return;
+  try {
+    const raw = localStorage.getItem(LEGACY_KEY);
+    if (raw) await library.add(normalizeProject(JSON.parse(raw)));
+  } catch { /* uszkodzony stary zapis — pomijamy */ }
+  await library.setMeta('migratedV1', true);
+}
+
+// Szybka kopia z localStorage jest nowsza niż wpis w bibliotece, gdy aplikacja
+// zamknęła się w trakcie zapisu — wtedy ona wygrywa.
+async function recoverAutosave() {
+  const auto = readAutosave();
+  if (!auto?.id || !auto.project) return;
+  try {
+    const saved = await library.updatedAt(auto.id);
+    if (saved === null || saved < auto.updated) await library.save(auto.id, normalizeProject(auto.project), undefined, auto.updated);
+  } catch { /* uszkodzona kopia — zostaje wersja z biblioteki */ }
+}
+
 function showTab(which) {
   $('tabUsage').setAttribute('aria-selected', String(which === 'usage'));
   $('tabSteps').setAttribute('aria-selected', String(which === 'steps'));
@@ -573,16 +806,31 @@ function showTab(which) {
 
 // ---------------------------------------------------------------- start
 
-if (IN_ARTIFACT) document.querySelectorAll('[data-download]').forEach((el) => { el.hidden = true; });
-bind();
-setTool('pencil');
-renderControls();
-renderPalette();
-fitZoom();
-renderChart();
-renderInfo();
-schedulePreview();
-$('saveState').textContent = restored ? 'Wczytano z przeglądarki' : '';
+async function start() {
+  if (IN_ARTIFACT) document.querySelectorAll('[data-download]').forEach((el) => { el.hidden = true; });
+  bind();
+  setTool('pencil');
+  library = new Library(await openBackend());
+  // Prośba, żeby system nie usuwał danych aplikacji, gdy brakuje miejsca.
+  navigator.storage?.persist?.().catch(() => {});
+  await migrateLegacy();
+  await recoverAutosave();
+  const list = await library.list();
+  const wanted = await library.getMeta('current');
+  const id = list.some((p) => p.id === wanted) ? wanted : list[0]?.id;
+  if (id) {
+    showProject(await library.load(id), id);
+    setSaveState('Wczytano z tego urządzenia');
+  } else {
+    const p = createProject();
+    showProject(p, await library.add(p));
+    dirty = true;
+    setTimeout(() => saveNow({ thumb: true }), 500);
+  }
+  refreshBackupBadge();
+}
+
+start();
 
 // Praca offline tylko na prawdziwej stronie (https), żeby nie przeszkadzała przy pracy lokalnej.
 if ('serviceWorker' in navigator && location.protocol === 'https:' && !IN_ARTIFACT) {

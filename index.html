@@ -35,8 +35,8 @@
       <input id="projectName" type="text" maxlength="80" spellcheck="false">
     </label>
     <div class="topbar-actions">
+      <button id="btnLibrary" class="btn btn-badge" type="button">Moje projekty</button>
       <button id="btnNew" class="btn" type="button">Nowy</button>
-      <button id="btnOpen" class="btn" type="button">Otwórz</button>
       <button id="btnSave" class="btn" type="button" data-download>Zapisz plik</button>
       <input id="fileInput" type="file" accept=".json,application/json" hidden>
       <span id="saveState" class="save-state" aria-live="polite"></span>
@@ -190,6 +190,25 @@
       </div>
       <ol id="steps" class="steps"></ol>
     </div>
+  </section>
+</div>
+
+<div id="library" class="sheet-backdrop" hidden>
+  <section class="sheet" role="dialog" aria-modal="true" aria-labelledby="libTitle">
+    <header class="sheet-head">
+      <div>
+        <h2 id="libTitle">Moje projekty</h2>
+        <span id="libCount" class="lib-count"></span>
+      </div>
+      <div class="sheet-actions">
+        <button id="libNew" class="btn btn-primary" type="button">+ Nowy projekt</button>
+        <button id="libImport" class="btn" type="button">Otwórz plik</button>
+        <button id="libExport" class="btn" type="button" data-download>Eksportuj wszystkie</button>
+        <button id="libClose" class="tool" type="button" aria-label="Zamknij">×</button>
+      </div>
+    </header>
+    <p id="libBackup" class="lib-backup"></p>
+    <ul id="libList" class="lib-grid"></ul>
   </section>
 </div>
 

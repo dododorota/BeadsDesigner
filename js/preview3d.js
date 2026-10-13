@@ -327,4 +327,16 @@ export class Preview3D {
   snapshot() {
     return this.ok ? this.renderer.domElement.toDataURL('image/png') : null;
   }
+
+  // Mała miniaturka do „Moich projektów” (kwadrat ze środka podglądu).
+  thumbnail(size = 200) {
+    if (!this.ok) return null;
+    const src = this.renderer.domElement;
+    if (!src.width || !src.height) return null;
+    const c = document.createElement('canvas');
+    c.width = c.height = size;
+    const s = Math.min(src.width, src.height);
+    c.getContext('2d').drawImage(src, (src.width - s) / 2, (src.height - s) / 2, s, s, 0, 0, size, size);
+    return c.toDataURL('image/png');
+  }
 }

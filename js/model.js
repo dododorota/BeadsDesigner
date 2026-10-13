@@ -88,7 +88,7 @@ export function createProject() {
 
 export function createBlankProject(mode = 'strand') {
   const p = createProject();
-  p.name = 'Nowy projekt';
+  p.name = { strand: 'Nowy naszyjnik', tube: 'Nowy wężyk', figure: 'Nowa figurka' }[mode] || 'Nowy projekt';
   p.mode = mode;
   p.strand = { count: 300, wrap: 30, symmetric: true, pendant: false, beads: new Array(300).fill(0) };
   p.tube = { around: 6, rows: 40, beads: new Array(240).fill(0) };
