@@ -21,7 +21,7 @@ Aktualizujemy go przy każdym etapie pracy (checkpoint), najnowsze wpisy są na 
 - [x] Dokumentacja (ten plik + README), 51 testów, wszystko wypchnięte na `main` (ostatni commit etapu 4: `7a321e8`)
 
 **Do zrobienia — Dorota**
-- [ ] Repo publiczne: *Settings → General → Danger Zone → Change visibility*
+- [x] Repo publiczne (2026-10-14)
 - [ ] GitHub Pages: *Settings → Pages → Deploy from a branch → `main` / `(root)`* → https://dododorota.github.io/BeadsDesigner/
 - [ ] Instalacja na iPadzie: Safari → adres wyżej → Udostępnij → Do ekranu początkowego
 - [ ] Test na iPadzie według listy „Do sprawdzenia na prawdziwym iPadzie” (niżej) i spisanie uwag
