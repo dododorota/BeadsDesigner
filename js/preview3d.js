@@ -6,6 +6,7 @@ import { OrbitControls } from 'three/addons/OrbitControls.js';
 import { RoomEnvironment } from 'three/addons/RoomEnvironment.js';
 import { beadType } from './beads.js';
 import { strandSlots } from './motifs.js';
+import { ballBeads3D, ballShape } from './ball.js';
 import { EMPTY, baseBead, beadOf, stitchLayoutOf } from './model.js';
 
 const UP = new THREE.Vector3(0, 1, 0);
@@ -178,6 +179,56 @@ function motifBeads(p, g, at, tan) {
   return res;
 }
 
+// Figurka na krzyż wyśrodkowana w (0, 0, 0). `ref` mówi, który koralik projektu
+// to jest — po stuknięciu w podgląd 3D malujemy właśnie jego.
+// `upTo` > 0 pokazuje figurkę tylko do tego oczka (nauka kolejności pracy).
+function ballBeads(p, base, upTo = 0, offset = new THREE.Vector3()) {
+  const ball = p.ball;
+  const list = ballBeads3D(ball, base);
+  const ys = list.map((q) => q.pos[1]);
+  const center = new THREE.Vector3(0, (Math.max(...ys) + Math.min(...ys)) / 2, 0);
+  let limit = Infinity, current = new Set();
+  if (upTo > 0) {
+    const steps = ballShape(ball.shape).steps.slice(0, upTo);
+    limit = steps.reduce((a, st) => a + st.added.length, 0);
+    current = new Set(steps[steps.length - 1].added);
+  }
+  const out = [];
+  for (const q of list) {
+    if (q.id >= limit) continue;
+    out.push({
+      pos: new THREE.Vector3(...q.pos).sub(center).add(offset),
+      axis: new THREE.Vector3(...q.axis),
+      color: ball.beads[q.id],
+      ref: { kind: 'bead', id: q.id },
+      faded: upTo > 0 && !current.has(q.id),
+    });
+  }
+  if (upTo > 0) return out;
+  // Dodatki: pętelka doczepiona do koralika, odstająca od figurki.
+  for (const x of ball.extras) {
+    const q = list[x.at];
+    if (!q) continue;
+    const at = new THREE.Vector3(...q.pos).sub(center).add(offset);
+    const nrm = new THREE.Vector3(...q.normal);
+    const tan = new THREE.Vector3(...q.axis).normalize();
+    const types = x.colors.map((c) => beadOf(p, c));
+    const lens = types.map((t) => t.h * 1.05);
+    const circ = lens.reduce((a, l) => a + l, 0);
+    const R = Math.max(circ / (2 * Math.PI), base.d * 0.8);
+    const c = at.clone().addScaledVector(nrm, R + base.d * 0.4);
+    let acc = 0;
+    x.colors.forEach((color, k) => {
+      const alpha = (2 * Math.PI * (acc + lens[k] / 2)) / circ;
+      acc += lens[k];
+      const dir = nrm.clone().multiplyScalar(-Math.cos(alpha)).addScaledVector(tan, Math.sin(alpha));
+      const axis = nrm.clone().multiplyScalar(Math.sin(alpha)).addScaledVector(tan, Math.cos(alpha));
+      out.push({ pos: c.clone().addScaledVector(dir, R), axis, color, ref: { kind: 'extra', at: x.at, k } });
+    });
+  }
+  return out;
+}
+
 // Ścieg płaski leży przodem do kamery; rurka stoi pionowo. Kąt `a` to kierunek
 // otworu w płaszczyźnie robótki (0 = poziomo, π/2 = pionowo).
 function stitchBeads(p) {
@@ -202,6 +253,8 @@ function stitchBeads(p) {
   }));
 }
 
+const modeApiBall = (p) => [...p.ball.beads, ...p.ball.extras.flatMap((x) => x.colors)];
+
 export function buildBeads(p, ui) {
   const b = baseBead(p);
   const extras = [];
@@ -224,7 +277,17 @@ export function buildBeads(p, ui) {
     }
     extras.push({ kind: 'thread', points: curve.points });
     extras.push({ kind: 'clasp', pos: curve.at(0).p, size: b.d });
-    if (s.pendant && p.figure.voxels.some((c) => c !== EMPTY)) {
+    if (s.pendant === 'ball') {
+      const bottom = curve.at((total + gap) / 2).p;
+      const fb = baseBead(p, modeApiBall(p));
+      const ringY = bottom.y - b.d * 2.2;
+      const body = ballBeads(p, fb);
+      const top = Math.max(...body.map((q) => q.pos.y));
+      const shift = new THREE.Vector3(bottom.x, ringY - fb.d - top, 0);
+      beads = beads.concat(body.map((q) => ({ ...q, pos: q.pos.add(shift), ref: undefined })));
+      extras.push({ kind: 'ring', pos: new THREE.Vector3(bottom.x, ringY, 0), size: b.d });
+    }
+    if (s.pendant === 'layers' && p.figure.voxels.some((c) => c !== EMPTY)) {
       const bottom = curve.at((total + gap) / 2).p;
       const f = p.figure;
       const fb = baseBead(p, f.voxels.filter((c) => c !== EMPTY));
@@ -252,6 +315,8 @@ export function buildBeads(p, ui) {
     });
   } else if (p.mode === 'stitch') {
     beads = stitchBeads(p);
+  } else if (p.mode === 'ball') {
+    beads = ballBeads(p, b, ui.ballStep || 0);
   } else {
     beads = figureBeads(p.figure, b, ui.buildView ? ui.layer : null);
   }
@@ -293,6 +358,22 @@ export class Preview3D {
     this.controls.dampingFactor = 0.12;
     this.controls.addEventListener('change', () => this.requestRender());
 
+    // Stuknięcie (bez przeciągania) w koralik maluje go — przeciąganie nadal obraca widok.
+    this.onTap = null;
+    this.raycaster = new THREE.Raycaster();
+    const el = r.domElement;
+    let down = null;
+    el.addEventListener('pointerdown', (e) => { down = { x: e.clientX, y: e.clientY, t: performance.now(), id: e.pointerId }; });
+    el.addEventListener('pointerup', (e) => {
+      if (!down || down.id !== e.pointerId) return;
+      const moved = Math.hypot(e.clientX - down.x, e.clientY - down.y);
+      const quick = performance.now() - down.t < 500;
+      down = null;
+      if (moved > 6 || !quick || !this.onTap) return;
+      const ref = this.pick(e.clientX, e.clientY);
+      if (ref) this.onTap(ref);
+    });
+
     this.group = new THREE.Group();
     this.scene.add(this.group);
     this.geometries = new Map();
@@ -323,6 +404,19 @@ export class Preview3D {
       if (this.controls.update()) this.requestRender();
       this.renderer.render(this.scene, this.camera);
     });
+  }
+
+  // Który koralik jest pod punktem ekranu (albo null).
+  pick(clientX, clientY) {
+    const rect = this.renderer.domElement.getBoundingClientRect();
+    const ndc = new THREE.Vector2(((clientX - rect.left) / rect.width) * 2 - 1, -((clientY - rect.top) / rect.height) * 2 + 1);
+    this.raycaster.setFromCamera(ndc, this.camera);
+    const meshes = this.group.children.filter((c) => c.isInstancedMesh && c.userData.refs);
+    for (const hit of this.raycaster.intersectObjects(meshes, false)) {
+      const ref = hit.object.userData.refs[hit.instanceId];
+      if (ref) return ref;
+    }
+    return null;
   }
 
   geometry(id) {
@@ -365,6 +459,7 @@ export class Preview3D {
         mesh.setMatrixAt(i, m4);
       });
       mesh.instanceMatrix.needsUpdate = true;
+      mesh.userData.refs = list.map((bd) => bd.ref);
       this.group.add(mesh);
     }
     const gold = this.material({ hex: '#d3a548', finish: 'metallic' }, false);

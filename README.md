@@ -6,17 +6,18 @@ koralików — od drobnych rocailles i Delica po rurki, tile, bicone i perełki,
 
 Postęp prac, plan i podjęte decyzje: **[docs/POSTEP.md](docs/POSTEP.md)**.
 
-## Cztery rodzaje projektów
+## Rodzaje projektów
 
 | Tryb | Co projektujesz | Jak wygląda schemat |
 | --- | --- | --- |
 | **Naszyjnik** | pojedynczy sznurek koralików, np. 300 szt. 11/0 ≈ 42 cm, z motywami: stokrotki (daisy chain), pętelki, frędzle | koraliki ułożone wierszami; motywy w obwódce; trójkąt pokazuje środek naszyjnika |
 | **Wężyk** | wężyk szydełkowy z koralikami (bead crochet), 3–16 na obwodzie | rozwinięty wężyk — każdy rząd przesunięty o pół koralika, dokładnie jak w spirali na prawdziwym wężyku |
 | **Ścieg** | peyote, brick, herringbone (też skręcony), square/krosno, ladder, CRAW i PRAW-3…6 — płasko albo w rurkę | koraliki ułożone i obrócone jak w danym ściegu (przesunięte kolumny, jodełka, klatki); instrukcja rząd po rzędzie |
-| **Figurka 3D** | zwierzątko / bryła z koralików, budowana warstwami | jeden poziomy plaster naraz, blade kropki to warstwa poniżej |
+| **Figurka** | figurka w technice japońskiej (na krzyż): kulka z oczek, 30–480 koralików, z uszkami i łapkami | schemat jak z Pinteresta: oczko 1 w środku, pierścienie oczek, tył jako obwód; maluj też stuknięciem w podgląd 3D |
+| **Warstwy** | starszy sposób na figurkę: bryła budowana warstwami | jeden poziomy plaster naraz, blade kropki to warstwa poniżej |
 
-Figurkę można zawiesić na naszyjniku: w trybie *Naszyjnik* zaznacz
-**„Zawieszka: figurka 3D na środku”**, a podgląd pokaże kurczaczka (albo Twoją figurkę) na środku sznurka.
+Figurkę można zawiesić na naszyjniku: w trybie *Naszyjnik* wybierz **„Zawieszka na środku”** —
+figurkę na krzyż (np. żabkę z przykładu) albo figurkę warstwami.
 
 ## Co potrafi
 
@@ -92,6 +93,7 @@ js/main.js            spina wszystko: narzędzia, historia, zapis, „Moje proje
 js/storage.js         biblioteka projektów na urządzeniu (IndexedDB), eksport i import
 js/stitches.js        silnik ściegów: układ, sąsiedzi, odbicie i instrukcja dla każdego ściegu
 js/motifs.js          motywy na naszyjniku: stokrotki, pętelki, frędzle
+js/ball.js            figurki na krzyż: bryły z oczek, schemat płaski, instrukcja oczko po oczku
 vendor/               three.js r169 (lokalnie, bez CDN)
 scripts/              składanie wersji jednoplikowej, rysowanie ikon
 tests/                testy logiki

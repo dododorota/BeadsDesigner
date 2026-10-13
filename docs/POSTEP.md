@@ -7,15 +7,17 @@ Aktualizujemy go przy każdym etapie pracy (checkpoint), najnowsze wpisy są na 
 
 ---
 
-## Handover — gdzie skończyliśmy (aktualizacja 2026-10-13)
+## Handover — gdzie skończyliśmy (aktualizacja 2026-10-14)
 
-**Stan kodu:** etapy 1, 1b, 2 i 3 gotowe na `main`:
+**Stan kodu:** etapy 1, 1b, 2, 3 i 4 gotowe na `main`:
 - katalog koralików, dotyk i Apple Pencil, instalacja na ekranie początkowym, praca offline;
 - „Moje projekty” (wiele projektów na urządzeniu, miniaturki, zapis przy zamykaniu, eksport wszystkich);
 - **tryb „Ścieg”**: peyote, brick, herringbone (też skręcony), square/krosno, ladder, CRAW/PRAW-3…6 — płasko albo w rurkę;
-- **motywy na naszyjniku**: stokrotki (daisy chain), pętelki, frędzle — narzędziem na schemacie albo „Wstaw co N koralików”.
+- **motywy na naszyjniku**: stokrotki (daisy chain), pętelki, frędzle — narzędziem na schemacie albo „Wstaw co N koralików”;
+- **tryb „Figurka” (technika japońska, na krzyż)**: kulka z oczek w 6 rozmiarach, schemat jak z Pinteresta, instrukcja oczko po oczku,
+  malowanie stuknięciem w 3D, dodatki (uszka, łapki), podgląd „do oczka N”, figurka jako zawieszka na naszyjniku.
 
-42 testy przechodzą. Lokalna gałąź `main` śledzi `origin/main` — zwykły `git push` działa.
+51 testów przechodzi. Lokalna gałąź `main` śledzi `origin/main` — zwykły `git push` działa.
 
 **Decyzja (2026-10-13): zostajemy przy aplikacji z ekranu początkowego** (opcja A z tabeli niżej).
 Etap 1c (aplikacja natywna) odpada, dopóki Dorota sama do niego nie wróci.
@@ -29,10 +31,11 @@ Etap 1c (aplikacja natywna) odpada, dopóki Dorota sama do niego nie wróci.
 
 ### Następny krok
 
-**Etap 4 — figurki w technice japońskiej** (na krzyż: oczka z numerami, koraliki na krawędziach,
-instrukcja krok po kroku jak na schematach z tablicy „biżu”). To największy etap — warto zacząć od
-jednej bryły (kulka) i dopiero potem dodawać uszy, łapki i własne kształty.
-Alternatywnie: dopracowanie list „Znane ograniczenia” (ściegi, motywy).
+Plan etapów 1–4 jest zrobiony. Propozycje na dalej (do wyboru przez Dorotę):
+- **Test na iPadzie i poprawki** po prawdziwym używaniu — najważniejsze, zanim dojdzie coś nowego.
+- **Figurki: własne kształty** — doczepiane mniejsze kulki (głowa, uszy z oczek, płetwy z kilku oczek), nie tylko pętelki.
+- **Dopracowanie ograniczeń** z list niżej (np. wężyk szydełkowy w silniku ściegów, ścieżka nici na schematach).
+- Pomysły 💡: konstrukcje z rurek, import zdjęcia → wzór, katalog kolorów Miyuki/Toho z numerami.
 
 <details>
 <summary>Rozważane drogi instalacji (archiwum decyzji)</summary>
@@ -61,7 +64,7 @@ W `js/storage.js` zostało miejsce na zapis do plików, gdyby kiedyś powstała 
 | 1c | Aplikacja natywna na iPada (Capacitor + `.ipa`) | — odrzucone 2026-10-13, zostajemy przy ekranie początkowym |
 | 2 | Ściegi płaskie i rurkowe na wspólnym „silniku ściegów”: peyote, brick, herringbone (proste i skręcone), ladder, square/krosno, CRAW, PRAW-3…6 | ✅ (wężyk szydełkowy jeszcze osobno — patrz ograniczenia) |
 | 3 | Naszyjnik z motywami: stokrotki (daisy chain), pętelki, frędzle; perły i koraliki ozdobne przez katalog koralików | ✅ |
-| 4 | Figurki w technice japońskiej (na krzyż): oczka z numerami, koraliki na krawędziach, instrukcja krok po kroku | ⏳ następny |
+| 4 | Figurki w technice japońskiej (na krzyż): oczka z numerami, koraliki na krawędziach, instrukcja krok po kroku | ✅ (kulka + dodatki-pętelki; własne kształty — patrz ograniczenia) |
 | — | Konstrukcje z rurek (kwiaty, gwiazdki, serduszka z trójkątów), import zdjęcia → wzór, katalog kolorów Miyuki/Toho z numerami | 💡 |
 
 Skąd ta kolejność: tablica inspiracji na Pinterest („biżu”) — najwięcej jest figurek 3D,
@@ -78,7 +81,7 @@ perełki 4 mm w „ścianach”).
 | --- | --- |
 | Naszyjnik — pojedynczy sznurek, symetria od środka, powielanie wzoru, zawieszka-figurka | ✅ |
 | Wężyk szydełkowy (bead crochet), 3–16 na obwodzie, spirala z przesunięciem o pół koralika | ✅ |
-| Figurka 3D warstwami (woksele) — wstępna wersja, docelowo zastąpi ją technika japońska | ✅ |
+| Figurka warstwami (woksele) — tryb „Warstwy”, zostaje dla starszych projektów | ✅ |
 | Ścieg: peyote, brick, herringbone, square/krosno, ladder — płasko albo w rurkę | ✅ |
 | Ścieg: herringbone skręcony (spirala) w rurce | ✅ |
 | Ścieg: CRAW i PRAW-3, -5, -6 (sznur z „klatek”) | ✅ |
@@ -92,7 +95,16 @@ perełki 4 mm w „ścianach”).
 | Motywy na schemacie (obwódka + znaczek), w 3D (kwiatek, kółko, zwisający frędzel), w instrukcji (kiedy przełożyć igłę) | ✅ |
 | Symetria, „Skopiuj lewą połowę na prawą” i „Powiel” uwzględniają motywy | ✅ |
 | Perły, bicone i koraliki ozdobne między zwykłymi | ✅ przez katalog koralików (etap 1) — kolor w palecie z innym kształtem |
-| Figurki w technice japońskiej | ⏳ etap 4 |
+| Figurka na krzyż: kulka z oczek (pięcio- i sześciokąty), 6 rozmiarów: 30, 90, 120, 270, 360, 480 koralików | ✅ |
+| Wydłużenie (wysokość ×) i spłaszczenie (głębokość ×) — jajo, płaska żabka | ✅ |
+| Schemat płaski jak na Pinterest: oczko 1 w środku, pierścienie oczek, tył jako obwód, numery oczek, linie nici | ✅ |
+| Instrukcja oczko po oczku: ile koralików już jest, co dodać; dodatki na końcu | ✅ |
+| Malowanie stuknięciem w koralik w podglądzie 3D (ołówek, wypełnianie, pipeta, dodatki) | ✅ |
+| Odbicie lewo–prawo (lustrzany koralik po drugiej stronie twarzy) | ✅ |
+| Dodatki: pętelka 2–16 koralików doczepiona do koralika (uszko, łapka, płetwa), z lustrem | ✅ |
+| „Pokaż w 3D do oczka N” — nauka kolejności pracy | ✅ |
+| Zawieszka na naszyjniku: figurka na krzyż albo figurka warstwami | ✅ |
+| Zmiana rozmiaru kulki przenosi kolory i dodatki według położenia na bryle | ✅ |
 
 ### Koraliki
 | Funkcja | Stan |
@@ -155,6 +167,17 @@ Wymagany iPadOS 16.4 lub nowszy (import map w Safari).
 
 ---
 
+## Znane ograniczenia figurek na krzyż
+
+- **Kształt bazowy to kulka** (wielościan z pięcio- i sześciokątów). Jajo i spłaszczenie to rozciągnięcie kulki —
+  na prawdziwej robótce taki kształt daje się dociągnięciem nici/wypchaniem, liczba koralików się nie zmienia.
+- **Dodatki to pętelki** przy jednym koraliku. Nie ma jeszcze doczepianych mniejszych kulek (głowa), uszu z oczek
+  ani płetw/ogonów z kilku oczek jak na schematach aksolotla czy świnki.
+- **Kolejność oczek** jest wyliczana automatycznie (pierścieniami od przodu) — może różnić się od schematu z internetu.
+- **Mieszane rozmiary** (np. większe oczka 8/0) rysują się we właściwym rozmiarze, ale bryła liczona jest dla najczęstszego koralika.
+- Instrukcja opisuje technikę na krzyż słowami; nie ma rysunku ścieżek dwóch końcówek żyłki.
+- Zużycie w trybie „Naszyjnik” liczy tylko naszyjnik — zawieszkę liczy się w jej trybie („Figurka”).
+
 ## Znane ograniczenia motywów
 
 - **Stokrotka** leży płasko w płaszczyźnie naszyjnika; środek ma zawsze jeden koralik.
@@ -199,12 +222,28 @@ Wymagany iPadOS 16.4 lub nowszy (import map w Safari).
   Koraliki zostają w zwykłej liście, więc malowanie, wypełnianie, zużycie i waga działają bez zmian;
   grupa mówi tylko, jak je ułożyć (schemat, 3D) i co napisać w instrukcji. Kolejność nawlekania w motywie
   jest stała (stokrotka: płatki → środek, frędzel: od góry → zwrotny), także po odbiciu lustrzanym.
+- **Figurka na krzyż = wielościan Goldberga**: oczka to ściany (12 pięciokątów + sześciokąty), koraliki to krawędzie,
+  w narożniku spotykają się 3 koraliki. Bryłę liczymy z dwudziestościanu (sfera geodezyjna → bryła dualna),
+  ustawioną symetrycznie lewo–prawo, z pięciokątem na wprost jako oczkiem 1. Koraliki są numerowane w kolejności nawlekania.
+- **Schemat płaski = rzut azymutalny równoodległy** ze środka oczka 1 — pierścienie oczek w równych odstępach, tył jako obwód.
+- **Stary tryb „Figurka 3D” zostaje jako „Warstwy”**, żeby stare projekty i zawieszki działały.
 - **Format pliku eksportu:** `{ format: "beadsdesigner-library", version: 1, exported, projects: [{ updated, project }] }`;
   pojedynczy projekt to sam obiekt projektu (`version: 2`). Oba mają rozszerzenie `.beads.json`.
 
 ---
 
 ## Dziennik
+
+### 2026-10-14 — Etap 4: figurki na krzyż (technika japońska)
+- Nowy moduł `js/ball.js`: bryły z oczek (6 rozmiarów), kolejność pracy, sąsiedzi, lustro, schemat płaski, położenia 3D,
+  dodatki (pętelki), przenoszenie kolorów przy zmianie rozmiaru, instrukcja oczko po oczku.
+- Tryb „Figurka” w przełączniku; stary tryb figurki to teraz „Warstwy”.
+- Schemat: linie oczek, numery oczek, znaczki dodatków; koraliki obrócone wzdłuż krawędzi.
+- Podgląd 3D: figurka z dodatkami, malowanie stuknięciem, „pokaż do oczka N”, figurka jako zawieszka na naszyjniku
+  (wybór zawieszki: brak / na krzyż / warstwy).
+- Przykład: miętowa żabka (270 koralików) z białym brzuszkiem, oczkami, rumieńcami i łapkami; wisi też na przykładowym naszyjniku.
+- Testy: 51 (9 nowych dla figurek). Sprawdzone w Chrome: schemat, 3D, malowanie stuknięciem w 3D (z lustrem),
+  podgląd do oczka 12, zawieszka na naszyjniku.
 
 ### 2026-10-13 — Etap 3: motywy na naszyjniku
 - Nowy moduł `js/motifs.js`: stokrotka, pętelka, frędzel jako grupy koralików na nitce; wstawianie, usuwanie,

@@ -2,7 +2,7 @@
 
 import { BEAD_TYPES, FINISHES, SHAPES, SUGGESTED_COLORS, beadsPerGram } from './beads.js';
 import {
-  EMPTY, addShape, baseBead, beadOf, clearLayer, setStitch, stitchLayoutOf, copyLayer, countColors, createBlankProject, createProject,
+  EMPTY, addShape, baseBead, beadOf, clearLayer, setBallShape, setStitch, stitchLayoutOf, copyLayer, countColors, createBlankProject, createProject,
   dimensions, floodFill, motifRoleText, hollow, instructions, instructionsText, mirrorStrand, modeApi, normalizeProject,
   removePaletteColor, repeatPattern, resizeFigure, resizeStrand, resizeTube, usage,
 } from './model.js';
@@ -11,6 +11,7 @@ import { Preview3D } from './preview3d.js';
 import { Library, openBackend, parseImport } from './storage.js';
 import { STITCHES, rowsFromVisible, visibleRows } from './stitches.js';
 import { MOTIFS, clearMotifs, fillMotifs, groupAt, insertMotif, removeMotifAt } from './motifs.js';
+import { BALL_SHAPES, EXTRA_SIZE, STRETCH, ballShape, extraAt, toggleExtra } from './ball.js';
 
 const IN_ARTIFACT = Boolean(window.BEADS_ARTIFACT);
 
@@ -29,6 +30,7 @@ const MODE_HINTS = {
   strand: 'Pojedynczy sznurek koralików. Schemat czyta się wierszami od lewej; trójkąt pokazuje środek naszyjnika.',
   tube: 'Wężyk szydełkowy z koralikami. Każdy rząd przesuwa się o pół koralika — tak jak na prawdziwym wężyku.',
   stitch: '',
+  ball: 'Figurka w technice japońskiej (na krzyż). Koraliki leżą na krawędziach oczek; oczko 1 to przód (środek schematu), ostatnie zamyka tył. Maluj na schemacie albo stuknięciem w podgląd 3D.',
   figure: 'Figurka budowana warstwami od dołu. Rysujesz jeden plaster naraz; blade kropki to warstwa poniżej.',
 };
 
@@ -40,6 +42,8 @@ let library = null;
 const ui = {
   tool: 'pencil', color: 0, layer: 0, buildView: false, hover: null,
   motif: { kind: 'daisy', size: 6, accent: 3, inside: false, alternate: false },
+  extraSize: 4,
+  ballStep: 0,
 };
 const history = { undo: [], redo: [] };
 let strokeChanged = false;
@@ -151,10 +155,10 @@ function changed({ structure = false, palette = false, fit = false } = {}) {
 
 // ---------------------------------------------------------------- schemat
 
-const chart = new ChartEditor($('chartScroller'), {
+const chartHandlers = {
   down(id) {
     if (ui.tool === 'picker') return pick(id);
-    if (ui.tool === 'motif') return motifTap(id);
+    if (ui.tool === 'motif') return project.mode === 'ball' ? extraTap(id) : motifTap(id);
     snapshot();
     strokeActive = true;
     strokeChanged = false;
@@ -184,7 +188,8 @@ const chart = new ChartEditor($('chartScroller'), {
     renderHover();
   },
   zoom: () => renderZoom(),
-});
+};
+const chart = new ChartEditor($('chartScroller'), chartHandlers);
 
 function applyTool(id) {
   const api = modeApi[project.mode];
@@ -219,6 +224,40 @@ function motifTap(id) {
     }
   }
   changed({ structure: true });
+}
+
+// Figurka: narzędzie motywu doczepia do koralika pętelkę (uszko, łapkę) albo ją usuwa.
+function extraTap(id) {
+  snapshot();
+  const res = toggleExtra(project.ball, id, ui.extraSize, ui.color);
+  toast(res === 'added' ? 'Dodatek doczepiony' : 'Dodatek usunięty');
+  changed({ structure: true });
+}
+
+// Stuknięcie w koralik w podglądzie 3D (tylko figurka na krzyż).
+function previewTap(ref) {
+  if (project.mode !== 'ball') return;
+  if (ref.kind === 'bead') {
+    if (ui.tool === 'motif') return extraTap(ref.id);
+    chartHandlers.down(ref.id);
+    chartHandlers.up();
+    return;
+  }
+  const ball = project.ball;
+  const x = extraAt(ball, ref.at);
+  if (!x) return;
+  if (ui.tool === 'motif') return extraTap(ref.at);
+  if (ui.tool === 'picker') {
+    ui.color = x.colors[ref.k];
+    setTool('pencil');
+    return renderPalette();
+  }
+  snapshot();
+  x.colors[ref.k] = ui.color;
+  const m = ball.mirror ? ballShape(ball.shape).beads[ref.at].mirror : null;
+  const twin = m !== null ? extraAt(ball, m) : null;
+  if (twin && twin.colors.length === x.colors.length) twin.colors[ref.k] = ui.color;
+  changed();
 }
 
 function motifColors() {
@@ -276,6 +315,11 @@ function renderHover() {
   } else if (project.mode === 'tube') {
     const C = project.tube.around;
     info.textContent = `Rząd ${Math.floor(id / C) + 1}, koralik ${(id % C) + 1} · ${name}`;
+  } else if (project.mode === 'ball') {
+    const shape = ballShape(project.ball.shape);
+    const [a, b] = shape.beads[id].faces.map((f) => shape.faceStep.get(f) + 1).sort((x, y) => x - y);
+    const extra = extraAt(project.ball, id);
+    info.textContent = `Koralik ${id + 1} z ${shape.count} · między oczkami ${a} i ${b}${extra ? ` · dodatek ${extra.colors.length} kor.` : ''} · ${name}`;
   } else if (project.mode === 'stitch') {
     const c = stitchLayoutOf(project).cells[id];
     const st = project.stitch;
@@ -303,7 +347,7 @@ function schedulePreview() {
     previewQueued = false;
     const p = project;
     const st = p.stitch;
-    const fitKey = [p.mode, p.palette.map((c) => c.bead).join(), baseBead(p).label, st.kind, st.form, st.width, st.rows, st.sides, st.twist, p.strand.count, p.strand.pendant, p.tube.around, p.tube.rows, p.figure.w, p.figure.d, p.figure.h].join('|');
+    const fitKey = [p.mode, p.palette.map((c) => c.bead).join(), baseBead(p).label, p.ball.shape, p.ball.sy, p.ball.sz, st.kind, st.form, st.width, st.rows, st.sides, st.twist, p.strand.count, p.strand.pendant, p.tube.around, p.tube.rows, p.figure.w, p.figure.d, p.figure.h].join('|');
     preview.update(p, ui, fitKey);
   });
 }
@@ -321,11 +365,12 @@ function renderControls() {
   document.querySelectorAll('.mode-switch button').forEach((b) => b.setAttribute('aria-checked', String(b.dataset.mode === p.mode)));
   $('modeHint').textContent = p.mode === 'stitch' ? STITCHES[p.stitch.kind].hint : MODE_HINTS[p.mode];
   renderStitchControls();
-  document.querySelectorAll('[data-for]').forEach((el) => { el.hidden = el.dataset.for !== p.mode; });
+  document.querySelectorAll('[data-for]').forEach((el) => { el.hidden = !el.dataset.for.split(' ').includes(p.mode); });
+  renderBallControls();
   setNumber('strandCount', p.strand.count);
   setNumber('strandWrap', p.strand.wrap);
   $('strandSym').checked = p.strand.symmetric;
-  $('strandPendant').checked = p.strand.pendant;
+  $('strandPendant').value = p.strand.pendant;
   setNumber('tubeAround', p.tube.around);
   setNumber('tubeRows', p.tube.rows);
   setNumber('figW', p.figure.w);
@@ -335,8 +380,28 @@ function renderControls() {
   ui.layer = Math.max(0, Math.min(ui.layer, p.figure.h - 1));
   $('layerLabel').textContent = `Warstwa ${ui.layer + 1}/${p.figure.h}`;
   $('buildView').checked = ui.buildView;
-  if ((p.mode !== 'figure' && ui.tool === 'eraser') || (p.mode !== 'strand' && ui.tool === 'motif')) setTool('pencil');
+  if ((p.mode !== 'figure' && ui.tool === 'eraser') || (!['strand', 'ball'].includes(p.mode) && ui.tool === 'motif')) setTool('pencil');
   document.title = `${p.name} · Beads Designer`;
+}
+
+function renderBallControls() {
+  const b = project.ball;
+  $('ballShape').value = b.shape;
+  setNumber('ballSy', b.sy);
+  setNumber('ballSz', b.sz);
+  $('ballMirror').checked = b.mirror;
+  setNumber('extraSize', ui.extraSize);
+  const steps = ballShape(b.shape).steps.length;
+  $('ballStep').max = steps;
+  ui.ballStep = Math.min(ui.ballStep, steps);
+  setNumber('ballStep', ui.ballStep);
+}
+
+function setBallStep(v) {
+  const steps = ballShape(project.ball.shape).steps.length;
+  ui.ballStep = Math.max(0, Math.min(steps, Math.round(Number(v) || 0)));
+  setNumber('ballStep', ui.ballStep);
+  schedulePreview();
 }
 
 function renderMotifControls() {
@@ -465,7 +530,7 @@ function setTool(tool) {
 function setMode(mode) {
   if (project.mode === mode) return;
   project.mode = mode;
-  if ((mode !== 'figure' && ui.tool === 'eraser') || (mode !== 'strand' && ui.tool === 'motif')) setTool('pencil');
+  if ((mode !== 'figure' && ui.tool === 'eraser') || (!['strand', 'ball'].includes(mode) && ui.tool === 'motif')) setTool('pencil');
   changed({ structure: true, fit: true });
 }
 
@@ -546,6 +611,21 @@ function bind() {
   bindNumber('figD', (v) => resizeFigure(project, project.figure.w, v, project.figure.h));
   bindNumber('figH', (v) => resizeFigure(project, project.figure.w, project.figure.d, v));
 
+  $('ballShape').innerHTML = Object.entries(BALL_SHAPES).map(([k, s]) => `<option value="${k}">${s.label}</option>`).join('');
+  $('ballShape').addEventListener('change', (e) => { snapshot(); setBallShape(project, e.target.value); changed({ structure: true, fit: true }); });
+  const stretch = (v) => Math.max(STRETCH[0], Math.min(STRETCH[1], Math.round((Number(v) || 1) * 10) / 10));
+  $('ballSy').addEventListener('change', (e) => { snapshot(); project.ball.sy = stretch(e.target.value); changed({ structure: true }); });
+  $('ballSz').addEventListener('change', (e) => { snapshot(); project.ball.sz = stretch(e.target.value); changed({ structure: true }); });
+  $('ballMirror').addEventListener('change', (e) => { project.ball.mirror = e.target.checked; changed(); });
+  $('extraSize').addEventListener('change', (e) => {
+    ui.extraSize = Math.max(EXTRA_SIZE[0], Math.min(EXTRA_SIZE[1], Math.round(Number(e.target.value) || 4)));
+    setNumber('extraSize', ui.extraSize);
+  });
+  $('ballStep').addEventListener('change', (e) => setBallStep(e.target.value));
+  $('ballStepPrev').addEventListener('click', () => setBallStep(ui.ballStep - 1));
+  $('ballStepNext').addEventListener('click', () => setBallStep(ui.ballStep + 1));
+  preview.onTap = previewTap;
+
   $('motifKind').innerHTML = Object.entries(MOTIFS).map(([k, m]) => `<option value="${k}">${m.name}</option>`).join('');
   $('motifKind').addEventListener('change', (e) => {
     ui.motif.kind = e.target.value;
@@ -596,7 +676,7 @@ function bind() {
   });
 
   $('strandSym').addEventListener('change', (e) => { project.strand.symmetric = e.target.checked; changed(); });
-  $('strandPendant').addEventListener('change', (e) => { project.strand.pendant = e.target.checked; changed(); });
+  $('strandPendant').addEventListener('change', (e) => { snapshot(); project.strand.pendant = e.target.value; changed({ structure: true }); });
   $('figMirror').addEventListener('change', (e) => { project.figure.mirror = e.target.checked; changed(); });
   $('strandRepeat').addEventListener('click', () => { snapshot(); repeatPattern(project, Number($('strandRepeatLen').value)); changed(); toast('Wzór powielony na cały sznurek'); });
   $('tubeRepeat').addEventListener('click', () => { snapshot(); repeatPattern(project, Number($('tubeRepeatLen').value)); changed(); toast('Rzędy powielone na cały wężyk'); });
@@ -718,7 +798,7 @@ function bind() {
     else if (k === 'g' || k === 'f') setTool('fill');
     else if (k === 'i') setTool('picker');
     else if (k === 'e' && project.mode === 'figure') setTool('eraser');
-    else if (k === 'm' && project.mode === 'strand') setTool('motif');
+    else if (k === 'm' && ['strand', 'ball'].includes(project.mode)) setTool('motif');
     else if (k === '+' || k === '=') { chart.setZoom(chart.zoom * 1.2); renderZoom(); }
     else if (k === '-') { chart.setZoom(chart.zoom / 1.2); renderZoom(); }
     else if (k === 'pageup' || k === ']') setLayer(ui.layer + 1);
@@ -732,7 +812,7 @@ function bind() {
 
 // ---------------------------------------------------------------- moje projekty
 
-const MODE_NAMES = { strand: 'Naszyjnik', tube: 'Wężyk', stitch: 'Ścieg', figure: 'Figurka 3D' };
+const MODE_NAMES = { strand: 'Naszyjnik', tube: 'Wężyk', stitch: 'Ścieg', ball: 'Figurka', figure: 'Figurka warstwami' };
 
 // Przełącza edytor na inny projekt. Nie zapisuje go od nowa — samo otwarcie
 // nie zmienia daty „ostatnio zmieniany”.
@@ -780,7 +860,8 @@ async function newProject() {
     { label: 'Naszyjnik', value: 'strand', primary: true },
     { label: 'Wężyk', value: 'tube', primary: true },
     { label: 'Ścieg', value: 'stitch', primary: true },
-    { label: 'Figurka', value: 'figure', primary: true },
+    { label: 'Figurka', value: 'ball', primary: true },
+    { label: 'Warstwy', value: 'figure' },
   ]);
   if (!choice) return;
   await addAndOpen(choice === 'example' ? createProject() : createBlankProject(choice));

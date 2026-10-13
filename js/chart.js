@@ -393,6 +393,21 @@ export class ChartEditor {
       g.globalAlpha = 1;
     }
 
+    // Figurka na krzyż: krawędzie oczek (nitka) pod koralikami, jak na schematach.
+    if (layout.lines) {
+      g.save();
+      g.strokeStyle = tok('--ink-soft');
+      g.globalAlpha = 0.45;
+      g.lineWidth = Math.max(1, S * 0.06);
+      g.beginPath();
+      for (const [x1, y1, x2, y2] of layout.lines) {
+        g.moveTo(MARGIN.left + x1 * S, MARGIN.top + y1 * S);
+        g.lineTo(MARGIN.left + x2 * S, MARGIN.top + y2 * S);
+      }
+      g.stroke();
+      g.restore();
+    }
+
     const empty = tok('--empty-dot');
     for (const c of layout.cells) {
       const col = colorOf(c.id);
@@ -419,6 +434,34 @@ export class ChartEditor {
       } else {
         g.drawImage(sp, x + (S * (1 - k)) / 2, y + (S * (1 - k)) / 2, S * k, S * k);
       }
+    }
+
+    // Numery oczek (kolejność pracy) w środkach oczek.
+    if (layout.labels) {
+      g.save();
+      g.fillStyle = tok('--ink-soft');
+      g.font = `600 ${Math.max(9, Math.min(13, S * 0.42))}px ${tok('--font-mono') || 'monospace'}`;
+      g.textAlign = 'center';
+      g.textBaseline = 'middle';
+      for (const l of layout.labels) g.fillText(l.text, MARGIN.left + l.x * S, MARGIN.top + l.y * S);
+      g.restore();
+    }
+    // Znaczki przy koralikach z doczepionym dodatkiem (liczba koralików dodatku).
+    if (layout.badges?.length) {
+      g.save();
+      g.font = `600 ${Math.max(8, S * 0.3)}px ${tok('--font-body') || 'sans-serif'}`;
+      g.textAlign = 'center';
+      g.textBaseline = 'middle';
+      for (const b of layout.badges) {
+        const bx = MARGIN.left + b.x * S + S * 0.35, by = MARGIN.top + b.y * S - S * 0.35;
+        g.fillStyle = tok('--accent');
+        g.beginPath();
+        g.arc(bx, by, Math.max(6, S * 0.26), 0, Math.PI * 2);
+        g.fill();
+        g.fillStyle = tok('--accent-ink');
+        g.fillText(`+${b.text}`, bx, by + 0.5);
+      }
+      g.restore();
     }
 
     // Motywy na naszyjniku: obwódka wokół ich koralików i znaczek rodzaju.
