@@ -7,35 +7,33 @@ Aktualizujemy go przy każdym etapie pracy (checkpoint), najnowsze wpisy są na 
 
 ---
 
-## Handover — gdzie skończyliśmy (aktualizacja 2026-10-14)
+## Handover — zaparkowane 2026-10-14, wracamy następnego dnia
 
-**Stan kodu:** etapy 1, 1b, 2, 3 i 4 gotowe na `main`:
-- katalog koralików, dotyk i Apple Pencil, instalacja na ekranie początkowym, praca offline;
-- „Moje projekty” (wiele projektów na urządzeniu, miniaturki, zapis przy zamykaniu, eksport wszystkich);
-- **tryb „Ścieg”**: peyote, brick, herringbone (też skręcony), square/krosno, ladder, CRAW/PRAW-3…6 — płasko albo w rurkę;
-- **motywy na naszyjniku**: stokrotki (daisy chain), pętelki, frędzle — narzędziem na schemacie albo „Wstaw co N koralików”;
-- **tryb „Figurka” (technika japońska, na krzyż)**: kulka z oczek w 6 rozmiarach, schemat jak z Pinteresta, instrukcja oczko po oczku,
-  malowanie stuknięciem w 3D, dodatki (uszka, łapki), podgląd „do oczka N”, figurka jako zawieszka na naszyjniku.
+### Checklista
 
-51 testów przechodzi. Lokalna gałąź `main` śledzi `origin/main` — zwykły `git push` działa.
+**Zrobione ✅**
+- [x] Etap 1 — katalog koralików (36 typów, 10 kształtów), dotyk i Apple Pencil, ekran początkowy, offline
+- [x] Etap 1b — „Moje projekty”: wiele projektów, autozapis, zapis przy zamykaniu, eksport/import wszystkich
+- [x] Etap 1c — decyzja: zostajemy przy aplikacji z ekranu początkowego (bez wersji natywnej)
+- [x] Etap 2 — tryb „Ścieg”: peyote, brick, herringbone (też skręcony), square/krosno, ladder, CRAW/PRAW-3…6
+- [x] Etap 3 — motywy na naszyjniku: stokrotki (daisy chain), pętelki, frędzle
+- [x] Etap 4 — tryb „Figurka” na krzyż: kulka z oczek, schemat jak z Pinteresta, instrukcja oczko po oczku, malowanie w 3D, dodatki, zawieszka
+- [x] Dokumentacja (ten plik + README), 51 testów, wszystko wypchnięte na `main` (ostatni commit etapu 4: `7a321e8`)
 
-**Decyzja (2026-10-13): zostajemy przy aplikacji z ekranu początkowego** (opcja A z tabeli niżej).
-Etap 1c (aplikacja natywna) odpada, dopóki Dorota sama do niego nie wróci.
+**Do zrobienia — Dorota**
+- [ ] Repo publiczne: *Settings → General → Danger Zone → Change visibility*
+- [ ] GitHub Pages: *Settings → Pages → Deploy from a branch → `main` / `(root)`* → https://dododorota.github.io/BeadsDesigner/
+- [ ] Instalacja na iPadzie: Safari → adres wyżej → Udostępnij → Do ekranu początkowego
+- [ ] Test na iPadzie według listy „Do sprawdzenia na prawdziwym iPadzie” (niżej) i spisanie uwag
 
-### Do zrobienia po stronie Doroty
+**Do zrobienia — następna sesja (do wyboru)**
+- [ ] Poprawki po teście na iPadzie (najpierw to, jeśli są uwagi)
+- [ ] Figurki: własne kształty — uszy i płetwy z oczek, doczepiana głowa (nie tylko pętelki)
+- [ ] Ograniczenia z list niżej (np. wężyk szydełkowy w silniku ściegów, ścieżka nici na schematach)
+- [ ] 💡 Konstrukcje z rurek, import zdjęcia → wzór, kolory Miyuki/Toho z numerami
 
-1. **Włączyć GitHub Pages:** repo publiczne (*Settings → General → Danger Zone → Change visibility*),
-   potem *Settings → Pages → Deploy from a branch → `main` / `(root)`*. Adres: https://dododorota.github.io/BeadsDesigner/
-2. **Zainstalować na iPadzie:** Safari → adres wyżej → Udostępnij → Do ekranu początkowego.
-3. **Przetestować na prawdziwym iPadzie** — lista w sekcji „Do sprawdzenia na prawdziwym iPadzie”.
-
-### Następny krok
-
-Plan etapów 1–4 jest zrobiony. Propozycje na dalej (do wyboru przez Dorotę):
-- **Test na iPadzie i poprawki** po prawdziwym używaniu — najważniejsze, zanim dojdzie coś nowego.
-- **Figurki: własne kształty** — doczepiane mniejsze kulki (głowa, uszy z oczek, płetwy z kilku oczek), nie tylko pętelki.
-- **Dopracowanie ograniczeń** z list niżej (np. wężyk szydełkowy w silniku ściegów, ścieżka nici na schematach).
-- Pomysły 💡: konstrukcje z rurek, import zdjęcia → wzór, katalog kolorów Miyuki/Toho z numerami.
+**Jak zacząć jutro:** przeczytać tę sekcję, sprawdzić `git status` / `git log` (gałąź `main` śledzi `origin/main`),
+uruchomić `npm test` (51 testów) i zapytać Dorotę o wyniki testu na iPadzie oraz wybór z listy wyżej.
 
 <details>
 <summary>Rozważane drogi instalacji (archiwum decyzji)</summary>
@@ -233,6 +231,9 @@ Wymagany iPadOS 16.4 lub nowszy (import map w Safari).
 ---
 
 ## Dziennik
+
+### 2026-10-14 — Zaparkowane
+- Checklista zrobionego i planu na następną sesję w sekcji Handover. Bez zmian w kodzie.
 
 ### 2026-10-14 — Etap 4: figurki na krzyż (technika japońska)
 - Nowy moduł `js/ball.js`: bryły z oczek (6 rozmiarów), kolejność pracy, sąsiedzi, lustro, schemat płaski, położenia 3D,
