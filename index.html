@@ -151,18 +151,33 @@
 
     <section class="panel" data-for="ball">
       <h2 class="panel-title">Figurka na krzyż</h2>
+      <label class="field" id="ballPartField"><span>Kulka na schemacie</span><select id="ballPart"></select></label>
+      <div class="part-edit" id="ballPartEdit">
+        <label class="field"><span>Nazwa kulki</span><input id="ballPartName" type="text" maxlength="40"></label>
+        <button id="ballPartRemove" class="btn btn-small" type="button">Usuń kulkę</button>
+      </div>
+      <p class="hint" id="ballPartHint"></p>
       <label class="field"><span>Rozmiar kulki</span><select id="ballShape"></select></label>
       <div class="field-row">
         <label class="field"><span>Wysokość ×</span><input id="ballSy" type="number" min="0.6" max="1.8" step="0.1"></label>
         <label class="field"><span>Głębokość ×</span><input id="ballSz" type="number" min="0.6" max="1.8" step="0.1"></label>
       </div>
       <label class="check"><input id="ballMirror" type="checkbox"> Odbicie lewo–prawo</label>
-      <h3 class="panel-subtitle panel-subtitle-gap">Dodatki — uszka, łapki, płetwy</h3>
+      <h3 class="panel-subtitle panel-subtitle-gap">Doczep kulkę — głowa, łapka, ogonek</h3>
+      <label class="field"><span>Rozmiar nowej kulki</span><select id="partShape"></select></label>
       <div class="inline-action">
-        <span>Koralików w dodatku</span>
-        <input id="extraSize" type="number" min="2" max="16" value="4" aria-label="Liczba koralików w dodatku">
+        <span>do oczka</span>
+        <input id="partAt" type="number" min="1" value="1" aria-label="Numer oczka, do którego doczepić kulkę">
+        <span id="partAtOf">tej kulki</span>
+        <button id="partAdd" class="btn btn-small" type="button">Doczep</button>
       </div>
-      <p class="hint">Wybierz narzędzie motywu na pasku i stuknij koralik figurki — na schemacie albo w podglądzie 3D. Doczepi się pętelka w aktualnym kolorze; stuknij jeszcze raz, żeby ją usunąć.</p>
+      <p class="hint">Numer oczka odczytasz ze schematu. Kulka doczepiona z boku dostaje lustrzaną parę. Kulki robi się osobno i zszywa oczkami — w instrukcji jest, którymi; na schemacie są oznaczone ◆.</p>
+      <h3 class="panel-subtitle panel-subtitle-gap">Dodatki — uszka, łapki, płetwy</h3>
+      <div class="field-row">
+        <label class="field"><span>Rodzaj</span><select id="extraKind"></select></label>
+        <label class="field"><span id="extraSizeLabel">Koralików</span><input id="extraSize" type="number" min="2" max="16" value="4"></label>
+      </div>
+      <p class="hint">Wybierz narzędzie motywu na pasku i stuknij koralik figurki — na schemacie albo w podglądzie 3D. Dodatek doczepi się w aktualnym kolorze; stuknij jeszcze raz, żeby go usunąć. Pętelka to kółko z koralików, pasek z oczek — płaskie uszko albo płetwa z kwadratowych oczek.</p>
       <h3 class="panel-subtitle panel-subtitle-gap">Krok po kroku</h3>
       <div class="inline-action">
         <span>Pokaż w 3D do oczka</span>

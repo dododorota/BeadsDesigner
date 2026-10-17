@@ -7,7 +7,7 @@ Aktualizujemy go przy każdym etapie pracy (checkpoint), najnowsze wpisy są na 
 
 ---
 
-## Handover — zaparkowane 2026-10-14, wracamy następnego dnia
+## Handover — stan na 2026-10-17
 
 ### Checklista
 
@@ -18,22 +18,23 @@ Aktualizujemy go przy każdym etapie pracy (checkpoint), najnowsze wpisy są na 
 - [x] Etap 2 — tryb „Ścieg”: peyote, brick, herringbone (też skręcony), square/krosno, ladder, CRAW/PRAW-3…6
 - [x] Etap 3 — motywy na naszyjniku: stokrotki (daisy chain), pętelki, frędzle
 - [x] Etap 4 — tryb „Figurka” na krzyż: kulka z oczek, schemat jak z Pinteresta, instrukcja oczko po oczku, malowanie w 3D, dodatki, zawieszka
-- [x] Dokumentacja (ten plik + README), 51 testów, wszystko wypchnięte na `main` (ostatni commit etapu 4: `7a321e8`)
+- [x] Etap 5 — figurki z kilku kulek (głowa, łapki, ogonek) i paski z oczek (uszy, płetwy)
+- [x] Dokumentacja (ten plik + README), 56 testów, wszystko wypchnięte na `main`
 
 **Do zrobienia — Dorota**
 - [x] Repo publiczne (2026-10-14)
-- [ ] GitHub Pages: *Settings → Pages → Deploy from a branch → `main` / `(root)`* → https://dododorota.github.io/BeadsDesigner/
+- [x] GitHub Pages włączone (2026-10-17) → https://dododorota.github.io/BeadsDesigner/
+  — sprawdzone w Chrome w rozmiarze iPada: 5 trybów bez błędów, service worker zapisuje pliki, aplikacja otwiera się bez internetu
 - [ ] Instalacja na iPadzie: Safari → adres wyżej → Udostępnij → Do ekranu początkowego
 - [ ] Test na iPadzie według listy „Do sprawdzenia na prawdziwym iPadzie” (niżej) i spisanie uwag
 
 **Do zrobienia — następna sesja (do wyboru)**
 - [ ] Poprawki po teście na iPadzie (najpierw to, jeśli są uwagi)
-- [ ] Figurki: własne kształty — uszy i płetwy z oczek, doczepiana głowa (nie tylko pętelki)
 - [ ] Ograniczenia z list niżej (np. wężyk szydełkowy w silniku ściegów, ścieżka nici na schematach)
 - [ ] 💡 Konstrukcje z rurek, import zdjęcia → wzór, kolory Miyuki/Toho z numerami
 
 **Jak zacząć jutro:** przeczytać tę sekcję, sprawdzić `git status` / `git log` (gałąź `main` śledzi `origin/main`),
-uruchomić `npm test` (51 testów) i zapytać Dorotę o wyniki testu na iPadzie oraz wybór z listy wyżej.
+uruchomić `npm test` (56 testów) i zapytać Dorotę o wyniki testu na iPadzie oraz wybór z listy wyżej.
 
 <details>
 <summary>Rozważane drogi instalacji (archiwum decyzji)</summary>
@@ -62,7 +63,8 @@ W `js/storage.js` zostało miejsce na zapis do plików, gdyby kiedyś powstała 
 | 1c | Aplikacja natywna na iPada (Capacitor + `.ipa`) | — odrzucone 2026-10-13, zostajemy przy ekranie początkowym |
 | 2 | Ściegi płaskie i rurkowe na wspólnym „silniku ściegów”: peyote, brick, herringbone (proste i skręcone), ladder, square/krosno, CRAW, PRAW-3…6 | ✅ (wężyk szydełkowy jeszcze osobno — patrz ograniczenia) |
 | 3 | Naszyjnik z motywami: stokrotki (daisy chain), pętelki, frędzle; perły i koraliki ozdobne przez katalog koralików | ✅ |
-| 4 | Figurki w technice japońskiej (na krzyż): oczka z numerami, koraliki na krawędziach, instrukcja krok po kroku | ✅ (kulka + dodatki-pętelki; własne kształty — patrz ograniczenia) |
+| 4 | Figurki w technice japońskiej (na krzyż): oczka z numerami, koraliki na krawędziach, instrukcja krok po kroku | ✅ |
+| 5 | Figurki z kilku kulek (głowa, łapki, ogonek) i paski z oczek (uszy, płetwy) | ✅ |
 | — | Konstrukcje z rurek (kwiaty, gwiazdki, serduszka z trójkątów), import zdjęcia → wzór, katalog kolorów Miyuki/Toho z numerami | 💡 |
 
 Skąd ta kolejność: tablica inspiracji na Pinterest („biżu”) — najwięcej jest figurek 3D,
@@ -100,6 +102,11 @@ perełki 4 mm w „ścianach”).
 | Malowanie stuknięciem w koralik w podglądzie 3D (ołówek, wypełnianie, pipeta, dodatki) | ✅ |
 | Odbicie lewo–prawo (lustrzany koralik po drugiej stronie twarzy) | ✅ |
 | Dodatki: pętelka 2–16 koralików doczepiona do koralika (uszko, łapka, płetwa), z lustrem | ✅ |
+| Dodatki: pasek z oczek 1–8 kwadratowych oczek (płaskie uszko, płetwa) — instrukcja oczko po oczku | ✅ |
+| Kilka kulek w figurce: „Doczep kulkę do oczka N” (do tułowia albo innej kulki), do 9 kulek, każda z własnym rozmiarem i wydłużeniem | ✅ |
+| Kulka z boku dostaje lustrzaną parę („Łapka lewa/prawa”); malowanie i dodatki odbijają się na parę | ✅ |
+| Wybór kulki na schemacie, nazwa, usuwanie (z parą i tym, co do niej doczepione); stuknięcie w kulkę w 3D przełącza schemat | ✅ |
+| Instrukcja: każda kulka osobno, potem „Zszyj oczko X z oczkiem Y”; oczka łączenia oznaczone ◆ na schemacie | ✅ |
 | „Pokaż w 3D do oczka N” — nauka kolejności pracy | ✅ |
 | Zawieszka na naszyjniku: figurka na krzyż albo figurka warstwami | ✅ |
 | Zmiana rozmiaru kulki przenosi kolory i dodatki według położenia na bryle | ✅ |
@@ -126,7 +133,7 @@ perełki 4 mm w „ścianach”).
 | iPad w pionie: schemat na całą szerokość | ✅ |
 | Instalacja na ekranie początkowym (ikona, pełny ekran) | ✅ |
 | Działanie bez internetu (service worker) — tylko na stronie https | ✅ |
-| Publikacja na GitHub Pages | ⏳ czeka na włączenie w ustawieniach repo (po stronie Doroty) |
+| Publikacja na GitHub Pages — https://dododorota.github.io/BeadsDesigner/ | ✅ (2026-10-17) |
 
 ### Zapis i eksport
 | Funkcja | Stan |
@@ -169,8 +176,11 @@ Wymagany iPadOS 16.4 lub nowszy (import map w Safari).
 
 - **Kształt bazowy to kulka** (wielościan z pięcio- i sześciokątów). Jajo i spłaszczenie to rozciągnięcie kulki —
   na prawdziwej robótce taki kształt daje się dociągnięciem nici/wypchaniem, liczba koralików się nie zmienia.
-- **Dodatki to pętelki** przy jednym koraliku. Nie ma jeszcze doczepianych mniejszych kulek (głowa), uszu z oczek
-  ani płetw/ogonów z kilku oczek jak na schematach aksolotla czy świnki.
+- **Kulki doczepiane** są osobnymi kulkami zszywanymi oczkami — nie wyrastają z tułowia jedną nicią. Kulka nie obraca się
+  (przód zostaje z przodu), więc łączy się tym oczkiem, które akurat patrzy w stronę rodzica; aplikacja wybiera
+  oczko o tej samej liczbie koralików, jeśli jest prawie tak samo dobrze ustawione.
+- **Pasek z oczek** to oczka po 4 koraliki w jednym rzędzie, prostopadle do figurki; nie ma zwężania, wachlarza
+  ani pasków szerszych niż jedno oczko (np. płetwa z 3 oczek obok siebie).
 - **Kolejność oczek** jest wyliczana automatycznie (pierścieniami od przodu) — może różnić się od schematu z internetu.
 - **Mieszane rozmiary** (np. większe oczka 8/0) rysują się we właściwym rozmiarze, ale bryła liczona jest dla najczęstszego koralika.
 - Instrukcja opisuje technikę na krzyż słowami; nie ma rysunku ścieżek dwóch końcówek żyłki.
@@ -224,6 +234,11 @@ Wymagany iPadOS 16.4 lub nowszy (import map w Safari).
   w narożniku spotykają się 3 koraliki. Bryłę liczymy z dwudziestościanu (sfera geodezyjna → bryła dualna),
   ustawioną symetrycznie lewo–prawo, z pięciokątem na wprost jako oczkiem 1. Koraliki są numerowane w kolejności nawlekania.
 - **Schemat płaski = rzut azymutalny równoodległy** ze środka oczka 1 — pierścienie oczek w równych odstępach, tył jako obwód.
+- **Figurka z kilku kulek** (2026-10-17): tułów to sama `ball`, doczepione kulki są w `ball.parts: [{ name, parent, at, shape, sy, sz, beads, extras }]`
+  (`parent` = -1 albo wcześniejsza kulka, `at` = numer kroku oczka rodzica). Numery koralików idą przez całą figurkę
+  (tułów, potem kulki po kolei), więc malowanie, wypełnianie, lustro i zużycie działają jak dla jednej kulki.
+  Lustrzana para to kulka o tym samym rozmiarze przy lustrzanym oczku lustrzanego rodzica.
+- **Dodatki mają rodzaj** (`kind: 'loop' | 'strip'`); stare pliki bez pola to pętelki. Pasek ma 3 koraliki na oczko (bok, góra, bok).
 - **Stary tryb „Figurka 3D” zostaje jako „Warstwy”**, żeby stare projekty i zawieszki działały.
 - **Format pliku eksportu:** `{ format: "beadsdesigner-library", version: 1, exported, projects: [{ updated, project }] }`;
   pojedynczy projekt to sam obiekt projektu (`version: 2`). Oba mają rozszerzenie `.beads.json`.
@@ -231,6 +246,15 @@ Wymagany iPadOS 16.4 lub nowszy (import map w Safari).
 ---
 
 ## Dziennik
+
+### 2026-10-17 — Etap 5: figurki z kilku kulek, paski z oczek
+- GitHub Pages włączone; strona sprawdzona w Chrome (rozmiar iPada, poziomo i pionowo, bez internetu).
+- `js/ball.js`: części figurki (doczepianie z lustrzaną parą, usuwanie z potomkami, zmiana rozmiaru przenosząca miejsca
+  doczepienia), położenie kulek w 3D (stykają się oczkami), pasek z oczek, instrukcja dla wielu kulek.
+- Panel „Figurka na krzyż”: kulka na schemacie, nazwa, usuwanie, „Doczep kulkę do oczka N”, rodzaj dodatku (pętelka / pasek).
+- Schemat: ◆ przy oczkach łączenia, znaczki dodatków `+4` (pętelka) i `3□` (pasek z 3 oczek).
+- Testy: 56 (5 nowych). Sprawdzone w Chrome przez klikanie w interfejsie: głowa na tułowiu żabki, uszy-paski na głowie,
+  para łapek, cofnięcie, przeładowanie strony (projekt zapisany) — bez błędów w konsoli.
 
 ### 2026-10-14 — Zaparkowane
 - Checklista zrobionego i planu na następną sesję w sekcji Handover. Bez zmian w kodzie.

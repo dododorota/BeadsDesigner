@@ -446,7 +446,7 @@ export class ChartEditor {
       for (const l of layout.labels) g.fillText(l.text, MARGIN.left + l.x * S, MARGIN.top + l.y * S);
       g.restore();
     }
-    // Znaczki przy koralikach z doczepionym dodatkiem (liczba koralików dodatku).
+    // Znaczki przy koralikach z doczepionym dodatkiem (+4 = pętelka, 3□ = pasek z 3 oczek).
     if (layout.badges?.length) {
       g.save();
       g.font = `600 ${Math.max(8, S * 0.3)}px ${tok('--font-body') || 'sans-serif'}`;
@@ -459,7 +459,7 @@ export class ChartEditor {
         g.arc(bx, by, Math.max(6, S * 0.26), 0, Math.PI * 2);
         g.fill();
         g.fillStyle = tok('--accent-ink');
-        g.fillText(`+${b.text}`, bx, by + 0.5);
+        g.fillText(b.text, bx, by + 0.5);
       }
       g.restore();
     }

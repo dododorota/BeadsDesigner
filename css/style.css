@@ -213,6 +213,8 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .inline-action { display: flex; align-items: center; gap: 6px; font-size: 13px; flex-wrap: wrap; }
 .inline-action input { width: 64px; }
 .inline-action select { width: auto; flex: 1; }
+.part-edit { display: flex; align-items: flex-end; gap: 8px; }
+.part-edit .field { flex: 1; }
 
 /* ------------------------------------------------------------ paleta */
 .palette-head { display: flex; align-items: center; justify-content: space-between; margin-top: 4px; }

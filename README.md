@@ -13,7 +13,7 @@ Postęp prac, plan i podjęte decyzje: **[docs/POSTEP.md](docs/POSTEP.md)**.
 | **Naszyjnik** | pojedynczy sznurek koralików, np. 300 szt. 11/0 ≈ 42 cm, z motywami: stokrotki (daisy chain), pętelki, frędzle | koraliki ułożone wierszami; motywy w obwódce; trójkąt pokazuje środek naszyjnika |
 | **Wężyk** | wężyk szydełkowy z koralikami (bead crochet), 3–16 na obwodzie | rozwinięty wężyk — każdy rząd przesunięty o pół koralika, dokładnie jak w spirali na prawdziwym wężyku |
 | **Ścieg** | peyote, brick, herringbone (też skręcony), square/krosno, ladder, CRAW i PRAW-3…6 — płasko albo w rurkę | koraliki ułożone i obrócone jak w danym ściegu (przesunięte kolumny, jodełka, klatki); instrukcja rząd po rzędzie |
-| **Figurka** | figurka w technice japońskiej (na krzyż): kulka z oczek, 30–480 koralików, z uszkami i łapkami | schemat jak z Pinteresta: oczko 1 w środku, pierścienie oczek, tył jako obwód; maluj też stuknięciem w podgląd 3D |
+| **Figurka** | figurka w technice japońskiej (na krzyż): kulka z oczek, 30–480 koralików; do tułowia doczepiasz kolejne kulki (głowa, łapki, ogonek), a do koralików — pętelki i paski z oczek (uszy, płetwy) | schemat jak z Pinteresta: oczko 1 w środku, pierścienie oczek, tył jako obwód; maluj też stuknięciem w podgląd 3D |
 | **Warstwy** | starszy sposób na figurkę: bryła budowana warstwami | jeden poziomy plaster naraz, blade kropki to warstwa poniżej |
 
 Figurkę można zawiesić na naszyjniku: w trybie *Naszyjnik* wybierz **„Zawieszka na środku”** —
@@ -26,7 +26,10 @@ figurkę na krzyż (np. żabkę z przykładu) albo figurkę warstwami.
 - **Powtórzenia**: „Powiel pierwsze N koralików / rzędów” rozkłada fragment na całą długość.
 - **Motywy na naszyjniku**: narzędzie „Motyw” — stuknij koralik, a za nim pojawi się stokrotka, pętelka albo frędzel;
   stuknij motyw, żeby go usunąć. „Wstaw co N koralików” robi cały daisy chain jednym przyciskiem.
-- **Figurki**: gotowe bryły (kula/jajo, walec, stożek, prostopadłościan), „Wydrąż środek”, kopiowanie warstwy, podgląd „do tej warstwy”, żeby zobaczyć, jak figurka rośnie.
+- **Figurki na krzyż**: kilka kulek w jednej figurce — „Doczep kulkę do oczka N” (kulka z boku dostaje lustrzaną parę),
+  każda kulka z własnym rozmiarem i wydłużeniem; instrukcja mówi, którymi oczkami je zszyć. Dodatki przy koraliku:
+  pętelka albo pasek z kwadratowych oczek.
+- **Figurki warstwami**: gotowe bryły (kula/jajo, walec, stożek, prostopadłościan), „Wydrąż środek”, kopiowanie warstwy, podgląd „do tej warstwy”, żeby zobaczyć, jak figurka rośnie.
 - **Koraliki**: każdy koralik w palecie ma własny kolor, kształt i rozmiar — okrągłe 15/0–6/0, Delica, Treasure, Aiko,
   demi round, kostki, trójkąty, rurki 3–12 mm, krople i magatamy, Tila, bicone, perełki — oraz wykończenie
   (nieprzezroczysty, przezroczysty, matowy, perłowy, metaliczny). Widać je na schemacie i w podglądzie 3D.

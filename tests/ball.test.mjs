@@ -112,3 +112,132 @@ test('stare projekty: zawieszka true → figurka warstwami', () => {
   delete raw.ball;
   assert.equal(normalizeProject(raw).ball.beads.length, 120);
 });
+
+// ---------------------------------------------------------------- części i paski z oczek
+
+import { addPart, removePart, ballParts3D, ballCount, ballMirror, locate, partMirror, partJoin, extraAt, extraMirrorIndex, extraBeads3D, fixParts } from '../js/ball.js';
+
+const ballWith = () => createBlankProject('ball');
+// Oczko leżące najbliżej kierunku (x, y, z); dla x = 0 — oczko na osi symetrii.
+const stepToward = (key, dir) => {
+  const s = ballShape(key);
+  const l = Math.hypot(...dir);
+  let best = 0, bd = Infinity;
+  s.steps.forEach((st, j) => {
+    if (dir[0] === 0 && s.stepMirror[j] !== j) return;
+    const c = s.faces[st.face].center;
+    const d = Math.hypot(c[0] - dir[0] / l, c[1] - dir[1] / l, c[2] - dir[2] / l);
+    if (d < bd) { bd = d; best = j; }
+  });
+  return best;
+};
+
+test('głowa na środku: jedna kulka, dotyka tułowia, numeracja przez całą figurkę', () => {
+  const p = ballWith();
+  const top = stepToward('b120', [0, 1, 0]);
+  const pi = addPart(p.ball, -1, top, 'b30', 2);
+  assert.equal(pi, 0);
+  assert.equal(p.ball.parts.length, 1, 'oczko na środku — bez pary');
+  assert.equal(p.ball.parts[0].name, 'Głowa');
+  assert.equal(ballCount(p.ball), 150);
+  assert.equal(usage(p).total, 150);
+  assert.deepEqual(locate(p.ball, 125), { pi: 0, part: p.ball.parts[0], local: 5, offset: 120 });
+  assert.equal(partMirror(p.ball, 0), 0);
+  // Lustro w głowie zostaje w głowie.
+  const m = ballMirror(p.ball, 125);
+  assert.ok(m >= 120 && m < 150);
+  // Głowa leży nad tułowiem, na osi symetrii.
+  const g = ballParts3D(p.ball, { d: 2, h: 1.5 });
+  const head = g[1].origin;
+  assert.ok(Math.abs(head[0]) < 1e-6 && head[1] > 0);
+  assert.equal(ballShape('b30').stepMirror[partJoin(p.ball, 0)], partJoin(p.ball, 0), 'łączy się oczkiem na osi');
+  assert.equal(addPart(p.ball, -1, top, 'b30', 2), 'Do tego oczka jest już doczepiona kulka');
+});
+
+test('kulka z boku: lustrzana para, malowanie i dodatki odbijają się na drugą', () => {
+  const p = ballWith();
+  const side = stepToward('b120', [1, -0.4, 0.3]);
+  addPart(p.ball, -1, side, 'b30', 3);
+  assert.equal(p.ball.parts.length, 2);
+  assert.match(p.ball.parts[0].name, /^Łapka (prawa|lewa)$/);
+  assert.equal(partMirror(p.ball, 0), 1);
+  const g = ballParts3D(p.ball, { d: 2, h: 1.5 });
+  assert.ok(Math.abs(g[1].origin[0] + g[2].origin[0]) < 1e-6, 'para ustawiona lustrzanie');
+  assert.ok(Math.abs(g[1].origin[1] - g[2].origin[1]) < 1e-6);
+  const id = 120 + 7;
+  const m = ballMirror(p.ball, id);
+  assert.ok(m >= 150 && m < 180, 'lustrzany koralik w drugiej kulce');
+  // Dodatek na kulce bocznej trafia też na jej parę.
+  toggleExtra(p.ball, id, 2, 1, 'strip');
+  assert.equal(p.ball.parts[0].extras.length, 1);
+  assert.equal(p.ball.parts[1].extras.length, 1);
+  assert.equal(extraAt(p.ball, m).colors.length, 6);
+  assert.equal(usage(p).total, 120 + 60 + 12);
+  // Usunięcie jednej kulki usuwa parę i to, co do niej doczepione.
+  addPart(p.ball, 0, 3, 'b30', 1);
+  removePart(p.ball, 1);
+  assert.equal(p.ball.parts.length, 0);
+});
+
+test('pasek z oczek: 3 koraliki na oczko, odstaje od figurki, lustro zamienia boki', () => {
+  const p = ballWith();
+  const at = 10;
+  const m = ballShape('b120').beads[at].mirror;
+  toggleExtra(p.ball, at, 3, 4, 'strip');
+  const x = extraAt(p.ball, at);
+  assert.equal(x.kind, 'strip');
+  assert.equal(x.colors.length, 9);
+  const q = ballBeads3D(p.ball, { d: 2, h: 1.5 })[at];
+  const beads = extraBeads3D(x, q, { d: 2, h: 1.5 }, () => ({ d: 2, h: 1.5 }));
+  assert.equal(beads.length, 9);
+  const out = (b) => (b.pos[0] - q.pos[0]) * q.normal[0] + (b.pos[1] - q.pos[1]) * q.normal[1] + (b.pos[2] - q.pos[2]) * q.normal[2];
+  assert.ok(beads.every((b) => out(b) > 0), 'cały pasek na zewnątrz');
+  assert.ok(out(beads[7]) > out(beads[1]), 'kolejne oczka coraz dalej');
+  if (m !== at) {
+    const k = extraMirrorIndex(p.ball, at, 0);
+    assert.ok(k === 0 || k === 2);
+  }
+  // Pętelka i pasek w instrukcji.
+  const text = instructionsText(p);
+  assert.match(text, /pasek z 3 oczek/);
+});
+
+test('instrukcja z kilku kulek: sekcja dla każdej i zszycie oczek', () => {
+  const p = ballWith();
+  addPart(p.ball, -1, stepToward('b120', [0, 1, 0]), 'b90', 2);
+  const lines = ballInstructions(p.ball, (r) => `${r.n}×${r.color}`, (n, a, b, c) => `${n} ${n === 1 ? a : n < 5 ? b : c}`);
+  assert.deepEqual(lines.filter((l) => l.sub).map((l) => l.sub), ['Tułów — 42 oczka, 120 koralików', 'Głowa — 32 oczka, 90 koralików']);
+  assert.equal(lines.filter((l) => l.num?.startsWith('Oczko')).length, 42 + 32);
+  const join = lines.find((l) => l.num === 'Zszyj');
+  assert.match(join.text, /^oczko \d+ tej kulki z oczkiem \d+ \(Tułów\)/);
+});
+
+test('zapis i wczytanie części; zmiana rozmiaru tułowia przenosi miejsce doczepienia', () => {
+  const p = ballWith();
+  const top = stepToward('b120', [0, 1, 0]);
+  addPart(p.ball, -1, top, 'b30', 5);
+  addPart(p.ball, 0, stepToward('b30', [1, 0.3, 0.6]), 'b30', 6);
+  const back = normalizeProject(JSON.parse(JSON.stringify(p)));
+  assert.deepEqual(back.ball, p.ball);
+  // Uszkodzone wpisy odpadają, a te z brakującym rodzicem razem z nimi.
+  const fixed = fixParts([{ parent: 5, at: 0 }, { parent: -1, at: 999 }, { parent: -1, at: 1, shape: 'b30' }, { parent: 2, at: 0 }, { parent: 1, at: 0 }], p.ball, (c) => c);
+  assert.equal(fixed.length, 2);
+  assert.equal(fixed[1].parent, 0, 'numer rodzica przeliczony na nową listę');
+  setBallShape(p, 'b480');
+  const s480 = ballShape('b480'), at = p.ball.parts[0].at;
+  assert.ok(s480.faces[s480.steps[at].face].center[1] > 0.8, 'głowa dalej na górze');
+  assert.equal(partMirror(p.ball, 0), 0, 'i dalej na osi symetrii');
+  removePaletteColor(p, 5);
+  assert.ok(p.ball.parts.every((q) => q.beads.every((c) => c !== 5 || p.palette.length > 5)));
+  // Wypełnianie nie wychodzi poza kulkę.
+  const q = ballWith();
+  addPart(q.ball, -1, top, 'b30', 0);
+  floodFill(q, {}, 0, 3);
+  assert.equal(q.ball.beads.filter((c) => c === 3).length, 120);
+  assert.ok(q.ball.parts[0].beads.every((c) => c === 0));
+  // Schemat bieżącej kulki ma jej numery koralików i znaczek ◆ przy łączeniu.
+  const lay = modeApi.ball.layout(q, { ballPart: 0 });
+  assert.equal(lay.cells[0].id, 120);
+  assert.ok(lay.labels.some((l) => l.text.endsWith('◆')));
+  assert.ok(modeApi.ball.layout(q, {}).labels[top].text.endsWith('◆'));
+});

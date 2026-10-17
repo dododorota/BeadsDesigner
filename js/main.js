@@ -2,7 +2,7 @@
 
 import { BEAD_TYPES, FINISHES, SHAPES, SUGGESTED_COLORS, beadsPerGram } from './beads.js';
 import {
-  EMPTY, addShape, baseBead, beadOf, clearLayer, setBallShape, setStitch, stitchLayoutOf, copyLayer, countColors, createBlankProject, createProject,
+  EMPTY, addShape, baseBead, beadOf, clearLayer, currentPart, setBallShape, setStitch, stitchLayoutOf, copyLayer, countColors, createBlankProject, createProject,
   dimensions, floodFill, motifRoleText, hollow, instructions, instructionsText, mirrorStrand, modeApi, normalizeProject,
   removePaletteColor, repeatPattern, resizeFigure, resizeStrand, resizeTube, usage,
 } from './model.js';
@@ -11,7 +11,10 @@ import { Preview3D } from './preview3d.js';
 import { Library, openBackend, parseImport } from './storage.js';
 import { STITCHES, rowsFromVisible, visibleRows } from './stitches.js';
 import { MOTIFS, clearMotifs, fillMotifs, groupAt, insertMotif, removeMotifAt } from './motifs.js';
-import { BALL_SHAPES, EXTRA_SIZE, STRETCH, ballShape, extraAt, toggleExtra } from './ball.js';
+import {
+  BALL_SHAPES, EXTRA_KINDS, STRETCH, addPart, ballShape, extraAt, extraMirrorIndex, extraSize, locate, partAt, partJoin, partName,
+  removePart, setPartStretch, toggleExtra,
+} from './ball.js';
 
 const IN_ARTIFACT = Boolean(window.BEADS_ARTIFACT);
 
@@ -42,8 +45,11 @@ let library = null;
 const ui = {
   tool: 'pencil', color: 0, layer: 0, buildView: false, hover: null,
   motif: { kind: 'daisy', size: 6, accent: 3, inside: false, alternate: false },
-  extraSize: 4,
+  extraKind: 'loop',
+  extraSize: { loop: EXTRA_KINDS.loop.def, strip: EXTRA_KINDS.strip.def },
   ballStep: 0,
+  ballPart: -1,
+  partShape: 'b30',
 };
 const history = { undo: [], redo: [] };
 let strokeChanged = false;
@@ -226,10 +232,10 @@ function motifTap(id) {
   changed({ structure: true });
 }
 
-// Figurka: narzędzie motywu doczepia do koralika pętelkę (uszko, łapkę) albo ją usuwa.
+// Figurka: narzędzie motywu doczepia do koralika dodatek (uszko, łapkę) albo go usuwa.
 function extraTap(id) {
   snapshot();
-  const res = toggleExtra(project.ball, id, ui.extraSize, ui.color);
+  const res = toggleExtra(project.ball, id, ui.extraSize[ui.extraKind], ui.color, ui.extraKind);
   toast(res === 'added' ? 'Dodatek doczepiony' : 'Dodatek usunięty');
   changed({ structure: true });
 }
@@ -237,6 +243,15 @@ function extraTap(id) {
 // Stuknięcie w koralik w podglądzie 3D (tylko figurka na krzyż).
 function previewTap(ref) {
   if (project.mode !== 'ball') return;
+  // Stuknięcie w inną kulkę przełącza na nią schemat.
+  const pi = locate(project.ball, ref.kind === 'bead' ? ref.id : ref.at)?.pi ?? -1;
+  if (pi !== currentPart(project, ui)) {
+    ui.ballPart = pi;
+    ui.ballStep = 0;
+    renderBallControls();
+    renderChart();
+    fitZoom();
+  }
   if (ref.kind === 'bead') {
     if (ui.tool === 'motif') return extraTap(ref.id);
     chartHandlers.down(ref.id);
@@ -254,9 +269,9 @@ function previewTap(ref) {
   }
   snapshot();
   x.colors[ref.k] = ui.color;
-  const m = ball.mirror ? ballShape(ball.shape).beads[ref.at].mirror : null;
+  const m = modeApi.ball.mirror(project, ref.at);
   const twin = m !== null ? extraAt(ball, m) : null;
-  if (twin && twin.colors.length === x.colors.length) twin.colors[ref.k] = ui.color;
+  if (twin && twin.kind === x.kind && twin.colors.length === x.colors.length) twin.colors[extraMirrorIndex(ball, ref.at, ref.k)] = ui.color;
   changed();
 }
 
@@ -316,10 +331,13 @@ function renderHover() {
     const C = project.tube.around;
     info.textContent = `Rząd ${Math.floor(id / C) + 1}, koralik ${(id % C) + 1} · ${name}`;
   } else if (project.mode === 'ball') {
-    const shape = ballShape(project.ball.shape);
-    const [a, b] = shape.beads[id].faces.map((f) => shape.faceStep.get(f) + 1).sort((x, y) => x - y);
+    const l = locate(project.ball, id);
+    const shape = ballShape(l.part.shape);
+    const [a, b] = shape.beads[l.local].faces.map((f) => shape.faceStep.get(f) + 1).sort((x, y) => x - y);
     const extra = extraAt(project.ball, id);
-    info.textContent = `Koralik ${id + 1} z ${shape.count} · między oczkami ${a} i ${b}${extra ? ` · dodatek ${extra.colors.length} kor.` : ''} · ${name}`;
+    const extraText = !extra ? '' : extra.kind === 'strip' ? ` · pasek ${extraSize(extra)} oczek` : ` · pętelka ${extraSize(extra)} kor.`;
+    const where = project.ball.parts.length ? `${partName(project.ball, l.pi)} · ` : '';
+    info.textContent = `${where}Koralik ${l.local + 1} z ${shape.count} · między oczkami ${a} i ${b}${extraText} · ${name}`;
   } else if (project.mode === 'stitch') {
     const c = stitchLayoutOf(project).cells[id];
     const st = project.stitch;
@@ -347,7 +365,7 @@ function schedulePreview() {
     previewQueued = false;
     const p = project;
     const st = p.stitch;
-    const fitKey = [p.mode, p.palette.map((c) => c.bead).join(), baseBead(p).label, p.ball.shape, p.ball.sy, p.ball.sz, st.kind, st.form, st.width, st.rows, st.sides, st.twist, p.strand.count, p.strand.pendant, p.tube.around, p.tube.rows, p.figure.w, p.figure.d, p.figure.h].join('|');
+    const fitKey = [p.mode, p.palette.map((c) => c.bead).join(), baseBead(p).label, p.ball.shape, p.ball.sy, p.ball.sz, p.ball.parts.map((q) => [q.parent, q.at, q.shape, q.sy, q.sz].join(':')).join(';'), st.kind, st.form, st.width, st.rows, st.sides, st.twist, p.strand.count, p.strand.pendant, p.tube.around, p.tube.rows, p.figure.w, p.figure.d, p.figure.h].join('|');
     preview.update(p, ui, fitKey);
   });
 }
@@ -385,12 +403,30 @@ function renderControls() {
 }
 
 function renderBallControls() {
-  const b = project.ball;
+  const ball = project.ball;
+  const pi = (ui.ballPart = currentPart(project, ui));
+  const b = partAt(ball, pi);
+  const esc = (s) => s.replace(/[&<"]/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '"': '&quot;' }[ch]));
+  $('ballPart').innerHTML = [-1, ...ball.parts.keys()].map((k) => `<option value="${k}">${esc(partName(ball, k))}</option>`).join('');
+  $('ballPart').value = String(pi);
+  $('ballPartField').hidden = !ball.parts.length;
+  $('ballPartEdit').hidden = pi < 0;
+  if (pi >= 0 && document.activeElement !== $('ballPartName')) $('ballPartName').value = b.name;
+  $('ballPartHint').hidden = pi < 0;
+  if (pi >= 0) $('ballPartHint').textContent = `Doczepiona do oczka ${b.at + 1} (${partName(ball, b.parent)}), łączy się swoim oczkiem ${partJoin(ball, pi) + 1}.`;
   $('ballShape').value = b.shape;
   setNumber('ballSy', b.sy);
   setNumber('ballSz', b.sz);
-  $('ballMirror').checked = b.mirror;
-  setNumber('extraSize', ui.extraSize);
+  $('ballMirror').checked = ball.mirror;
+  $('partShape').value = ui.partShape;
+  $('partAt').max = ballShape(b.shape).steps.length;
+  $('partAtOf').textContent = pi < 0 ? 'tułowia' : 'tej kulki';
+  const K = EXTRA_KINDS[ui.extraKind];
+  $('extraKind').value = ui.extraKind;
+  $('extraSizeLabel').textContent = K.unit;
+  $('extraSize').min = K.size[0];
+  $('extraSize').max = K.size[1];
+  setNumber('extraSize', ui.extraSize[ui.extraKind]);
   const steps = ballShape(b.shape).steps.length;
   $('ballStep').max = steps;
   ui.ballStep = Math.min(ui.ballStep, steps);
@@ -398,7 +434,7 @@ function renderBallControls() {
 }
 
 function setBallStep(v) {
-  const steps = ballShape(project.ball.shape).steps.length;
+  const steps = ballShape(partAt(project.ball, currentPart(project, ui)).shape).steps.length;
   ui.ballStep = Math.max(0, Math.min(steps, Math.round(Number(v) || 0)));
   setNumber('ballStep', ui.ballStep);
   schedulePreview();
@@ -612,14 +648,59 @@ function bind() {
   bindNumber('figH', (v) => resizeFigure(project, project.figure.w, project.figure.d, v));
 
   $('ballShape').innerHTML = Object.entries(BALL_SHAPES).map(([k, s]) => `<option value="${k}">${s.label}</option>`).join('');
-  $('ballShape').addEventListener('change', (e) => { snapshot(); setBallShape(project, e.target.value); changed({ structure: true, fit: true }); });
+  $('ballShape').addEventListener('change', (e) => { snapshot(); setBallShape(project, e.target.value, currentPart(project, ui)); changed({ structure: true, fit: true }); });
   const stretch = (v) => Math.max(STRETCH[0], Math.min(STRETCH[1], Math.round((Number(v) || 1) * 10) / 10));
-  $('ballSy').addEventListener('change', (e) => { snapshot(); project.ball.sy = stretch(e.target.value); changed({ structure: true }); });
-  $('ballSz').addEventListener('change', (e) => { snapshot(); project.ball.sz = stretch(e.target.value); changed({ structure: true }); });
+  $('ballSy').addEventListener('change', (e) => { snapshot(); setPartStretch(project.ball, currentPart(project, ui), stretch(e.target.value)); changed({ structure: true }); });
+  $('ballSz').addEventListener('change', (e) => { snapshot(); setPartStretch(project.ball, currentPart(project, ui), undefined, stretch(e.target.value)); changed({ structure: true }); });
   $('ballMirror').addEventListener('change', (e) => { project.ball.mirror = e.target.checked; changed(); });
+  $('ballPart').addEventListener('change', (e) => {
+    ui.ballPart = Number(e.target.value);
+    ui.ballStep = 0;
+    changed({ structure: true, fit: true });
+  });
+  $('ballPartName').addEventListener('input', (e) => {
+    const q = project.ball.parts[currentPart(project, ui)];
+    if (!q) return;
+    q.name = e.target.value.slice(0, 40) || 'Kulka';
+    $('ballPart').selectedOptions[0].textContent = q.name;
+    renderInfo();
+    scheduleSave();
+  });
+  $('ballPartRemove').addEventListener('click', async () => {
+    const pi = currentPart(project, ui);
+    if (pi < 0) return;
+    const ok = await ask('Usunąć kulkę?', `„${partName(project.ball, pi)}” zniknie razem z lustrzaną parą i wszystkim, co było do nich doczepione.`, [
+      { label: 'Anuluj', value: false }, { label: 'Usuń', value: true, primary: true },
+    ]);
+    if (!ok) return;
+    snapshot();
+    // Rodzic jest na liście przed kulką i jej parą, więc jego numer się nie zmienia.
+    const parent = project.ball.parts[pi].parent;
+    removePart(project.ball, pi);
+    ui.ballPart = parent;
+    ui.ballStep = 0;
+    changed({ structure: true, fit: true });
+  });
+  $('partShape').innerHTML = Object.entries(BALL_SHAPES).map(([k, s]) => `<option value="${k}">${s.label}</option>`).join('');
+  $('partShape').addEventListener('change', (e) => { ui.partShape = e.target.value; });
+  $('partAdd').addEventListener('click', () => {
+    snapshot();
+    const res = addPart(project.ball, currentPart(project, ui), Math.round(Number($('partAt').value)) - 1, ui.partShape, ui.color);
+    if (typeof res === 'string') {
+      history.undo.pop();
+      return toast(res);
+    }
+    toast(`Doczepiona: ${partName(project.ball, res)}`);
+    ui.ballPart = res;
+    ui.ballStep = 0;
+    changed({ structure: true, fit: true });
+  });
+  $('extraKind').innerHTML = Object.entries(EXTRA_KINDS).map(([k, x]) => `<option value="${k}">${x.name}</option>`).join('');
+  $('extraKind').addEventListener('change', (e) => { ui.extraKind = e.target.value; renderBallControls(); });
   $('extraSize').addEventListener('change', (e) => {
-    ui.extraSize = Math.max(EXTRA_SIZE[0], Math.min(EXTRA_SIZE[1], Math.round(Number(e.target.value) || 4)));
-    setNumber('extraSize', ui.extraSize);
+    const K = EXTRA_KINDS[ui.extraKind];
+    ui.extraSize[ui.extraKind] = Math.max(K.size[0], Math.min(K.size[1], Math.round(Number(e.target.value) || K.def)));
+    setNumber('extraSize', ui.extraSize[ui.extraKind]);
   });
   $('ballStep').addEventListener('change', (e) => setBallStep(e.target.value));
   $('ballStepPrev').addEventListener('click', () => setBallStep(ui.ballStep - 1));

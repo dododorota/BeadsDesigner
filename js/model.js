@@ -6,7 +6,8 @@ import {
   fixStitch, plural, remapBeads, repeatStitchRows, stitchCount, stitchInstructions, stitchLayout, stitchMirror, stitchNeighbors,
 } from './stitches.js';
 import {
-  BALL_SHAPES, ballBeads3D, ballInstructions, ballLayout, ballShape, fixBall, fixExtras, remapBall,
+  BALL_SHAPES, BODY, ballColors, ballInstructions, ballLayout, ballMirror, ballNeighbors, ballParts3D, ballShape, extraSize, fixBall,
+  fixExtras, fixParts, locate, partAt, partJoin, partOffset, setPartShape,
 } from './ball.js';
 import { MOTIFS, fixGroups, mirrorWithMotifs, repeatWithMotifs, roleInGroup, strandSlots, trimGroups } from './motifs.js';
 
@@ -96,7 +97,7 @@ function exampleBall() {
     ball.beads[nearest(sx * 0.38, 0.42, 0.82)] = 9;
     ball.beads[nearest(sx * 0.6, 0.02, 0.8)] = 1;
   }
-  ball.extras = [-1, 1].map((sx) => ({ at: nearest(sx * 0.5, -0.72, 0.48), colors: [2, 2, 2, 2] }));
+  ball.extras = [-1, 1].map((sx) => ({ at: nearest(sx * 0.5, -0.72, 0.48), kind: 'loop', colors: [2, 2, 2, 2] }));
   return ball;
 }
 
@@ -196,6 +197,7 @@ export function normalizeProject(raw) {
   const ball = fixBall({ ...base.ball, ...(raw.ball || {}) });
   ball.beads = Array.from({ length: ballShape(ball.shape).count }, (_, i) => fixColor((raw.ball?.beads || [])[i] ?? 0));
   ball.extras = fixExtras(raw.ball ? raw.ball.extras : base.ball.extras, ball.beads.length, (c) => fixColor(c));
+  ball.parts = fixParts(raw.ball ? raw.ball.parts : [], ball, (c) => fixColor(c));
   p.ball = ball;
   const f = { ...base.figure, ...(raw.figure || {}) };
   f.w = clamp(f.w, LIMITS.figureSide);
@@ -346,26 +348,37 @@ export function setStitch(p, changes) {
 export { stitchLayoutOf };
 
 // Figurka na krzyż: koraliki na krawędziach oczek, schemat płaski z numerami oczek.
+// Figurka może mieć kilka kulek (tułów, głowa…) — numery koralików idą przez całą
+// figurkę, a schemat pokazuje jedną kulkę naraz (`ui.ballPart`).
+export const currentPart = (p, ui) => Math.max(BODY, Math.min(p.ball.parts.length - 1, ui?.ballPart ?? BODY));
+
 const ballMode = {
-  get: (p, id) => p.ball.beads[id],
-  set: (p, id, c) => { p.ball.beads[id] = c; },
-  layout(p) {
-    const lay = ballLayout(p.ball.shape);
-    const badges = p.ball.extras.map((x) => {
+  get: (p, id) => { const l = locate(p.ball, id); return l ? l.part.beads[l.local] : 0; },
+  set: (p, id, c) => { const l = locate(p.ball, id); if (l) l.part.beads[l.local] = c; },
+  layout(p, ui) {
+    const ball = p.ball, pi = currentPart(p, ui), part = partAt(ball, pi);
+    const off = partOffset(ball, pi);
+    const lay = ballLayout(part.shape);
+    const cells = lay.cells.map((c) => ({ ...c, id: c.id + off }));
+    const badges = part.extras.map((x) => {
       const c = lay.cells[x.at];
-      return { x: c.x + 0.5, y: c.y + 0.5, text: String(x.colors.length) };
+      return { x: c.x + 0.5, y: c.y + 0.5, text: x.kind === 'strip' ? `${extraSize(x)}□` : `+${extraSize(x)}` };
     });
-    return { ...lay, rowLabels: [], colLabels: [], marks: [], badges, shape: 'side' };
+    // ◆ przy oczkach, którymi ta kulka łączy się z innymi.
+    const joined = new Set(ball.parts.filter((q) => q.parent === pi).map((q) => q.at));
+    if (pi >= 0) joined.add(partJoin(ball, pi));
+    const labels = joined.size ? lay.labels.map((l, i) => (joined.has(i) ? { ...l, text: `${l.text}◆` } : l)) : lay.labels;
+    return { ...lay, cells, labels, rowLabels: [], colLabels: [], marks: [], badges, shape: 'side' };
   },
-  neighbors: (p, id) => ballShape(p.ball.shape).beads[id].neighbors,
-  mirror: (p, id) => (p.ball.mirror ? ballShape(p.ball.shape).beads[id].mirror : null),
-  allBeads: (p) => [...p.ball.beads, ...p.ball.extras.flatMap((x) => x.colors)],
+  neighbors: (p, id) => ballNeighbors(p.ball, id),
+  mirror: (p, id) => ballMirror(p.ball, id),
+  allBeads: (p) => ballColors(p.ball),
 };
 
 // Zmiana rozmiaru kulki — kolory i dodatki przenoszą się według położenia na bryle.
-export function setBallShape(p, key) {
-  if (!BALL_SHAPES[key] || key === p.ball.shape) return;
-  p.ball = remapBall(p.ball, key);
+export function setBallShape(p, key, pi = BODY) {
+  if (!BALL_SHAPES[key]) return;
+  setPartShape(p.ball, pi, key);
 }
 
 const figureMode = {
@@ -497,12 +510,16 @@ export function removePaletteColor(p, removed) {
   p.strand.beads = p.strand.beads.map(remap);
   p.tube.beads = p.tube.beads.map(remap);
   p.stitch.beads = p.stitch.beads.map(remap);
-  p.ball.beads = p.ball.beads.map(remap);
-  p.ball.extras.forEach((x) => { x.colors = x.colors.map(remap); });
+  for (const q of [p.ball, ...p.ball.parts]) {
+    q.beads = q.beads.map(remap);
+    q.extras.forEach((x) => { x.colors = x.colors.map(remap); });
+  }
   p.figure.voxels = p.figure.voxels.map(remap);
 }
 
 // ---------------------------------------------------------------- liczenie
+
+const add3 = (a, b) => [a[0] + b[0], a[1] + b[1], a[2] + b[2]];
 
 export function countColors(p, beads = modeApi[p.mode].allBeads(p)) {
   const counts = new Array(p.palette.length).fill(0);
@@ -546,7 +563,7 @@ export function dimensions(p) {
   }
   const b = baseBead(p);
   if (p.mode === 'ball') {
-    const pts = ballBeads3D(p.ball, b).map((q) => q.pos);
+    const pts = ballParts3D(p.ball, b).flatMap((g) => g.list.map((q) => add3(q.pos, g.origin)));
     const size = (k) => Math.max(...pts.map((q) => q[k])) - Math.min(...pts.map((q) => q[k])) + b.d;
     return { label: 'Figurka', value: `${size(0).toFixed(0)} × ${size(1).toFixed(0)} × ${size(2).toFixed(0)} mm` };
   }
