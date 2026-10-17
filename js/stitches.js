@@ -1,5 +1,5 @@
-// Silnik ściegów: peyote, brick, herringbone, square/krosno, ladder i PRAW/CRAW,
-// płasko albo w rurkę.
+// Silnik ściegów: peyote, brick, herringbone, square/krosno, ladder, PRAW/CRAW
+// i wężyk szydełkowy (bead crochet), płasko albo w rurkę.
 //
 // Każdy ścieg to przepis na siatkę koralików. Dla każdego koralika podajemy:
 //   x, y   — miejsce na schemacie (w jednostkach koralika, y rośnie w dół),
@@ -39,9 +39,16 @@ export const STITCHES = {
     hint: 'Sznur z „klatek”: pierścień koralików (podłoga), pionowe ściany i kolejny pierścień. 4 boki to CRAW.',
     widthLabel: 'Boków',
   },
+  // Wężyk ma własny tryb (przycisk „Wężyk” i dane w `project.tube`), więc nie ma go na liście ściegów.
+  crochet: {
+    name: 'Wężyk szydełkowy',
+    hint: 'Wężyk szydełkowy z koralikami. Każdy rząd przesuwa się o pół koralika — tak jak na prawdziwym wężyku.',
+    widthLabel: 'Na obwodzie',
+    ownMode: 'tube',
+  },
 };
 
-export const STITCH_LIMITS = { width: [2, 60], rows: [1, 400], sides: [3, 6] };
+export const STITCH_LIMITS = { width: [2, 60], rows: [1, 400], sides: [3, 6], crochetWidth: [3, 16] };
 
 const clamp = (v, [lo, hi]) => Math.max(lo, Math.min(hi, Math.round(Number(v) || lo)));
 
@@ -70,8 +77,8 @@ export function fixStitch(st) {
   const s = { kind: 'peyote', form: 'flat', width: 10, rows: 20, sides: 4, twist: false, mirror: false, ...st };
   if (!STITCHES[s.kind]) s.kind = 'peyote';
   if (s.form !== 'tube') s.form = 'flat';
-  if (s.kind === 'praw') s.form = 'tube';
-  s.width = clamp(s.width, STITCH_LIMITS.width);
+  if (s.kind === 'praw' || s.kind === 'crochet') s.form = 'tube';
+  s.width = clamp(s.width, s.kind === 'crochet' ? STITCH_LIMITS.crochetWidth : STITCH_LIMITS.width);
   if (s.kind === 'herringbone' && s.width % 2) s.width += 1;
   s.rows = clamp(s.rows, STITCH_LIMITS.rows);
   s.sides = clamp(s.sides, STITCH_LIMITS.sides);
@@ -155,13 +162,36 @@ function prawLayout(st, bead) {
   return { cells, width: n + 0.5, height: 2 * U + 1, circ: 2 * Math.PI * R, period: n, rowLabels, colLabels: [] };
 }
 
+// Wężyk szydełkowy: koraliki układają się w jedną spiralę. Na obwodzie mieści się
+// width + 0.5 koralika, więc każdy rząd przesuwa się o pół koralika. Rozwinięcie
+// wężyka na płasko jest dzięki temu wierne: pionowy pasek na schemacie to pionowy
+// pasek na wężyku, a skośny to spirala. Otwór biegnie wzdłuż spirali.
+function crochetLayout(st, bead) {
+  const C = st.width, R = st.rows, P = C + 0.5;
+  const step = bead.d * 0.95, rowH = bead.d * 0.95;
+  const rho = (P * step) / (2 * Math.PI);
+  const a = Math.atan2(rowH, P * step);
+  const cells = [];
+  for (let r = 0; r < R; r++) for (let c = 0; c < C; c++) {
+    const id = r * C + c;
+    const x = (((c - 0.5 * r) % P) + P) % P;
+    cells.push({ id, x, y: R - 1 - r, a, u: x * step, v: (id * rowH) / P, theta: (2 * Math.PI * id) / P, rho, row: r, col: c });
+  }
+  const rowLabels = Array.from({ length: R }, (_, r) => ({ y: R - 1 - r, text: String(r + 1) }));
+  // Sąsiedzi wzdłuż spirali: koralik przed i za, dwa nad i dwa pod (o C i C+1 dalej).
+  // Na schemacie przy szwie leżą one na ukos, więc nie szukamy ich po odległości.
+  const n = C * R;
+  const neighbors = cells.map(({ id }) => [id - 1, id + 1, id - C, id - C - 1, id + C, id + C + 1].filter((k) => k >= 0 && k < n));
+  return { cells, width: P, height: R, circ: P * step, period: P, rowLabels, colLabels: [], neighbors };
+}
+
 // Układ zależy tylko od ustawień ściegu i wymiarów koralika — trzymamy kilka ostatnich.
 const cache = new Map();
 export function stitchLayout(st, bead) {
   const key = `${st.kind}|${st.form}|${st.width}|${st.rows}|${st.sides}|${st.twist}|${bead.d}|${bead.h}`;
   let lay = cache.get(key);
   if (lay) return lay;
-  lay = st.kind === 'praw' ? prawLayout(st, bead) : gridLayout(st, bead);
+  lay = st.kind === 'praw' ? prawLayout(st, bead) : st.kind === 'crochet' ? crochetLayout(st, bead) : gridLayout(st, bead);
   lay.form = st.form;
   lay.sizeMM = {
     w: st.form === 'tube' ? lay.circ / Math.PI : Math.max(...lay.cells.map((c) => c.u)) + bead.d,
@@ -189,6 +219,7 @@ function buildIndex(lay) {
 export function stitchNeighbors(lay, id) {
   const c = lay.cells[id];
   if (!c) return [];
+  if (lay.neighbors) return lay.neighbors[id];
   const out = [];
   const wrap = lay.form === 'tube' ? lay.period : 0;
   const shifts = wrap ? [0, -wrap, wrap] : [0];
@@ -263,7 +294,17 @@ export function stitchInstructions(st, beads, runText) {
   const word = tube ? 'Okr.' : 'Rz.';
   const name = `${stitchTitle(st)} ${tube ? 'w rurkę' : 'płaski'}`;
 
-  if (st.kind === 'peyote') {
+  if (st.kind === 'crochet') {
+    lines.push({
+      head: 'Kolejność nawlekania',
+      note: `Nawlekaj od góry listy. Pierwszy nawleczony koralik trafi na koniec wężyka, więc lista idzie od ostatniego rzędu do pierwszego. Na obwodzie ${W} koralików.`,
+    });
+    let pos = 0;
+    for (const r of runs([...beads].reverse())) {
+      lines.push({ num: `${pos + 1}${r.n > 1 ? `–${pos + r.n}` : ''}`, text: runText(r), color: r.color });
+      pos += r.n;
+    }
+  } else if (st.kind === 'peyote') {
     lines.push({
       head: name,
       note: tube

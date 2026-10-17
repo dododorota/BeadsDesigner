@@ -7,7 +7,7 @@ import { RoomEnvironment } from 'three/addons/RoomEnvironment.js';
 import { beadType } from './beads.js';
 import { strandSlots } from './motifs.js';
 import { ballColors, ballParts3D, extraBeads3D } from './ball.js';
-import { EMPTY, baseBead, beadOf, currentPart, stitchLayoutOf } from './model.js';
+import { EMPTY, baseBead, beadOf, currentPart, stitchLayoutOf, tubeLayoutOf } from './model.js';
 
 const UP = new THREE.Vector3(0, 1, 0);
 
@@ -220,11 +220,9 @@ function ballBeads(p, base, upTo = 0, offset = new THREE.Vector3(), part = -1) {
   return out;
 }
 
-// Ścieg płaski leży przodem do kamery; rurka stoi pionowo. Kąt `a` to kierunek
+// Ścieg płaski leży przodem do kamery; rurka (też wężyk) stoi pionowo. Kąt `a` to kierunek
 // otworu w płaszczyźnie robótki (0 = poziomo, π/2 = pionowo).
-function stitchBeads(p) {
-  const lay = stitchLayoutOf(p);
-  const list = p.stitch.beads;
+function stitchBeads(lay, list) {
   const midV = lay.sizeMM.h / 2;
   if (lay.form === 'tube') {
     const rho0 = lay.circ / (2 * Math.PI);
@@ -289,21 +287,9 @@ export function buildBeads(p, ui) {
       extras.push({ kind: 'ring', pos: new THREE.Vector3(bottom.x, ringY, 0), size: b.d });
     }
   } else if (p.mode === 'tube') {
-    const { around: C, beads: list } = p.tube;
-    const P = C + 0.5;
-    const s = b.d * 0.95;
-    const rho = (P * s) / (2 * Math.PI);
-    const rowH = b.d * 0.95;
-    const total = list.length;
-    const mid = (total * rowH) / P / 2;
-    beads = list.map((color, k) => {
-      const th = (2 * Math.PI * k) / P;
-      const pos = new THREE.Vector3(rho * Math.cos(th), (k * rowH) / P - mid, rho * Math.sin(th));
-      const axis = new THREE.Vector3(-Math.sin(th) * 2 * Math.PI * rho, rowH, Math.cos(th) * 2 * Math.PI * rho).normalize();
-      return { pos, axis, color };
-    });
+    beads = stitchBeads(tubeLayoutOf(p), p.tube.beads);
   } else if (p.mode === 'stitch') {
-    beads = stitchBeads(p);
+    beads = stitchBeads(stitchLayoutOf(p), p.stitch.beads);
   } else if (p.mode === 'ball') {
     beads = ballBeads(p, b, ui.ballStep || 0, undefined, currentPart(p, ui));
   } else {

@@ -31,7 +31,7 @@ const BEAD_OPTIONS = Object.entries(SHAPES).map(([shape, label]) => {
 
 const MODE_HINTS = {
   strand: 'Pojedynczy sznurek koralików. Schemat czyta się wierszami od lewej; trójkąt pokazuje środek naszyjnika.',
-  tube: 'Wężyk szydełkowy z koralikami. Każdy rząd przesuwa się o pół koralika — tak jak na prawdziwym wężyku.',
+  tube: STITCHES.crochet.hint,
   stitch: '',
   ball: 'Figurka w technice japońskiej (na krzyż). Koraliki leżą na krawędziach oczek; oczko 1 to przód (środek schematu), ostatnie zamyka tył. Maluj na schemacie albo stuknięciem w podgląd 3D.',
   figure: 'Figurka budowana warstwami od dołu. Rysujesz jeden plaster naraz; blade kropki to warstwa poniżej.',
@@ -736,7 +736,7 @@ function bind() {
     toast('Motywy usunięte');
   });
 
-  $('stitchKind').innerHTML = Object.entries(STITCHES).map(([k, s]) => `<option value="${k}">${s.name}</option>`).join('');
+  $('stitchKind').innerHTML = Object.entries(STITCHES).filter(([, s]) => !s.ownMode).map(([k, s]) => `<option value="${k}">${s.name}</option>`).join('');
   const stitchChange = (changes) => {
     snapshot();
     setStitch(project, changes);

@@ -19,7 +19,8 @@ Aktualizujemy go przy każdym etapie pracy (checkpoint), najnowsze wpisy są na 
 - [x] Etap 3 — motywy na naszyjniku: stokrotki (daisy chain), pętelki, frędzle
 - [x] Etap 4 — tryb „Figurka” na krzyż: kulka z oczek, schemat jak z Pinteresta, instrukcja oczko po oczku, malowanie w 3D, dodatki, zawieszka
 - [x] Etap 5 — figurki z kilku kulek (głowa, łapki, ogonek) i paski z oczek (uszy, płetwy)
-- [x] Dokumentacja (ten plik + README), 56 testów, wszystko wypchnięte na `main`
+- [x] Dokumentacja (ten plik + README), 56 testów, wypchnięte na `main` (`bf9224f`)
+- [x] Wężyk szydełkowy przeniesiony do silnika ściegów — 58 testów; **zmiany tylko lokalnie, bez commita** (commituje i wypycha Dorota)
 
 **Do zrobienia — Dorota**
 - [x] Repo publiczne (2026-10-14)
@@ -30,8 +31,10 @@ Aktualizujemy go przy każdym etapie pracy (checkpoint), najnowsze wpisy są na 
 
 **Do zrobienia — następna sesja (do wyboru)**
 - [ ] Poprawki po teście na iPadzie (najpierw to, jeśli są uwagi)
-- [ ] Ograniczenia z list niżej (np. wężyk szydełkowy w silniku ściegów, ścieżka nici na schematach)
+- [ ] Ograniczenia z list niżej (np. ścieżka nici na schematach)
 - [ ] 💡 Konstrukcje z rurek, import zdjęcia → wzór, kolory Miyuki/Toho z numerami
+
+**Git:** Claude nie robi commitów, gałęzi ani `git push` — wszystko zostaje lokalnie, Dorota commituje sama.
 
 **Jak zacząć jutro:** przeczytać tę sekcję, sprawdzić `git status` / `git log` (gałąź `main` śledzi `origin/main`),
 uruchomić `npm test` (56 testów) i zapytać Dorotę o wyniki testu na iPadzie oraz wybór z listy wyżej.
@@ -61,7 +64,7 @@ W `js/storage.js` zostało miejsce na zapis do plików, gdyby kiedyś powstała 
 | 1 | Katalog koralików (kształty i rozmiary Miyuki/Toho w palecie) + obsługa iPada | ✅ (czeka na sprawdzenie na prawdziwym iPadzie) |
 | 1b | „Moje projekty”: wiele projektów, zapis w IndexedDB, zapis przy zamykaniu, eksport wszystkiego | ✅ |
 | 1c | Aplikacja natywna na iPada (Capacitor + `.ipa`) | — odrzucone 2026-10-13, zostajemy przy ekranie początkowym |
-| 2 | Ściegi płaskie i rurkowe na wspólnym „silniku ściegów”: peyote, brick, herringbone (proste i skręcone), ladder, square/krosno, CRAW, PRAW-3…6 | ✅ (wężyk szydełkowy jeszcze osobno — patrz ograniczenia) |
+| 2 | Ściegi płaskie i rurkowe na wspólnym „silniku ściegów”: peyote, brick, herringbone (proste i skręcone), ladder, square/krosno, CRAW, PRAW-3…6, wężyk szydełkowy | ✅ |
 | 3 | Naszyjnik z motywami: stokrotki (daisy chain), pętelki, frędzle; perły i koraliki ozdobne przez katalog koralików | ✅ |
 | 4 | Figurki w technice japońskiej (na krzyż): oczka z numerami, koraliki na krawędziach, instrukcja krok po kroku | ✅ |
 | 5 | Figurki z kilku kulek (głowa, łapki, ogonek) i paski z oczek (uszy, płetwy) | ✅ |
@@ -80,7 +83,7 @@ perełki 4 mm w „ścianach”).
 | Funkcja | Stan |
 | --- | --- |
 | Naszyjnik — pojedynczy sznurek, symetria od środka, powielanie wzoru, zawieszka-figurka | ✅ |
-| Wężyk szydełkowy (bead crochet), 3–16 na obwodzie, spirala z przesunięciem o pół koralika | ✅ |
+| Wężyk szydełkowy (bead crochet), 3–16 na obwodzie, spirala z przesunięciem o pół koralika | ✅ (od 2026-10-17 liczony przez silnik ściegów) |
 | Figurka warstwami (woksele) — tryb „Warstwy”, zostaje dla starszych projektów | ✅ |
 | Ścieg: peyote, brick, herringbone, square/krosno, ladder — płasko albo w rurkę | ✅ |
 | Ścieg: herringbone skręcony (spirala) w rurce | ✅ |
@@ -196,7 +199,6 @@ Wymagany iPadOS 16.4 lub nowszy (import map w Safari).
 
 ## Znane ograniczenia ściegów
 
-- **Wężyk szydełkowy** to nadal osobny tryb „Wężyk” — jeszcze nie przeniesiony do silnika ściegów.
 - **Peyote w rurce** zakłada parzystą liczbę kolumn i przejście w górę (step up); spirala nieparzystego peyote nie jest modelowana.
 - **Odbicie w peyote przy parzystej liczbie kolumn** jest przybliżone: lustrzana kolumna ma drugą parzystość, więc jest pół koralika wyżej/niżej.
 - **Mieszane rozmiary koralików** w ściegu rysują się we właściwym kształcie i rozmiarze, ale siatka liczona jest dla najczęstszego koralika.
@@ -224,6 +226,11 @@ Wymagany iPadOS 16.4 lub nowszy (import map w Safari).
 - **Silnik ściegów (`js/stitches.js`)**: każdy ścieg opisuje koraliki jednym zestawem pól — miejsce na schemacie (`x, y`),
   kąt otworu (`a`), położenie w mm (`u, v`, a w PRAW `theta, rho`). Schemat, podgląd 3D, sąsiedzi do wypełniania,
   odbicie i instrukcja czytają ten sam opis, więc nowy ścieg to tylko nowa funkcja układu.
+- **Wężyk w silniku ściegów** (2026-10-17): ścieg `crochet` w `js/stitches.js` (zawsze rurka, 3–16 na obwodzie) liczy układ spirali,
+  sąsiadów, 3D, instrukcję, powielanie i zmianę rozmiaru. Tryb i przycisk „Wężyk” zostają, dane dalej w `project.tube`
+  (`around`, `rows`, `beads`) — format pliku bez zmian. Wężyka nie ma na liście ściegów w trybie „Ścieg”, żeby nie było dwóch
+  miejsc na to samo. Sąsiedzi wężyka idą wzdłuż spirali (±1, ±C, ±(C+1)), a nie po odległości na schemacie — na szwie spirali
+  kolejne koraliki leżą na schemacie na ukos.
 - **Peyote liczy rzędy jak w peyote:** pole „Rzędów” i instrukcja podają przejścia igłą (2 na każdy koralik w kolumnie).
 - **Zmiana ściegu albo rozmiaru zachowuje wzór** w tych samych rzędach i kolumnach (nowe miejsca powtarzają istniejący wzór).
 - **Motyw = grupa kolejnych koralików na tej samej nitce** (`strand.groups: [{ start, n, kind, side, rev }]`).
@@ -246,6 +253,12 @@ Wymagany iPadOS 16.4 lub nowszy (import map w Safari).
 ---
 
 ## Dziennik
+
+### 2026-10-17 — Wężyk szydełkowy w silniku ściegów (lokalnie, bez commita)
+- Nowy ścieg `crochet` w `js/stitches.js`; tryb „Wężyk” w `js/model.js` i podgląd 3D korzystają z silnika ściegów.
+- Dla 4 rozmiarów wężyka (6×60, 3×5, 16×12, 7×9) schemat, numery rzędów, sąsiedzi, instrukcja, wymiary, powielanie
+  i zmiana rozmiaru dają dokładnie to samo co przed zmianą. W 3D inne jest tylko wyśrodkowanie w pionie (ułamek mm).
+- Testy: 58 (2 nowe). Sprawdzone w Chrome: schemat i 3D wężyka, wypełnianie przez szew spirali, lista ściegów bez wężyka.
 
 ### 2026-10-17 — Etap 5: figurki z kilku kulek, paski z oczek
 - GitHub Pages włączone; strona sprawdzona w Chrome (rozmiar iPada, poziomo i pionowo, bez internetu).

@@ -191,7 +191,9 @@ export function normalizeProject(raw) {
   t.rows = clamp(t.rows, LIMITS.tubeRows);
   t.beads = Array.from({ length: t.around * t.rows }, (_, i) => fixColor((t.beads || [])[i] ?? 0));
   p.tube = t;
+  // Wężyk ma własny tryb — w danych ściegu go nie trzymamy.
   const st = fixStitch({ ...base.stitch, ...(raw.stitch || {}) });
+  if (st.kind === 'crochet') Object.assign(st, fixStitch({ ...st, kind: 'peyote', form: 'tube' }));
   st.beads = Array.from({ length: stitchCount(st) }, (_, i) => fixColor((raw.stitch?.beads || [])[i] ?? 0));
   p.stitch = st;
   const ball = fixBall({ ...base.ball, ...(raw.ball || {}) });
@@ -220,14 +222,12 @@ export function resizeStrand(p, count, wrap) {
   if (wrap !== undefined) s.wrap = clamp(wrap, LIMITS.strandWrap);
 }
 
+// Nowe rzędy i kolumny powtarzają istniejący wzór (tak samo jak w ściegach).
 export function resizeTube(p, around, rows) {
   const t = p.tube;
   around = clamp(around, LIMITS.tubeAround);
   rows = clamp(rows, LIMITS.tubeRows);
-  const beads = [];
-  for (let r = 0; r < rows; r++) for (let c = 0; c < around; c++) {
-    beads.push(r < t.rows && c < t.around ? t.beads[r * t.around + c] : t.beads[(r % t.rows) * t.around + (c % t.around)] ?? 0);
-  }
+  const beads = remapBeads(crochetOf(t), t.beads, crochetOf({ around, rows }));
   Object.assign(t, { around, rows, beads });
 }
 
@@ -296,28 +296,18 @@ function mirrorBead(s, id) {
   return twin.start + g.n - 1 - k;
 }
 
-// Wężyk szydełkowy: koraliki układają się w spiralę. Na obwodzie mieści się
-// around + 0.5 koralika, więc każdy rząd przesuwa się o pół koralika.
-// Rozwinięcie wężyka na płasko jest dzięki temu wierne: pionowy pasek na
-// schemacie to pionowy pasek na wężyku, a skośny to spirala.
+// Wężyk szydełkowy: układ spirali liczy silnik ściegów (ścieg „crochet”), a wężyk
+// trzyma tylko obwód, liczbę rzędów i kolory w `project.tube`.
+const crochetOf = (t) => fixStitch({ kind: 'crochet', form: 'tube', width: t.around, rows: t.rows });
+const tubeLayoutOf = (p) => stitchLayout(crochetOf(p.tube), baseBead(p, p.tube.beads));
+
 const tubeMode = {
   get: (p, id) => p.tube.beads[id],
   set: (p, id, c) => { p.tube.beads[id] = c; },
   layout(p) {
-    const { around: C, rows: R } = p.tube;
-    const P = C + 0.5;
-    const cells = [];
-    for (let r = 0; r < R; r++) for (let c = 0; c < C; c++) {
-      const x = (((c - 0.5 * r) % P) + P) % P;
-      cells.push({ id: r * C + c, x, y: R - 1 - r });
-    }
-    const rowLabels = Array.from({ length: R }, (_, r) => ({ y: R - 1 - r, text: String(r + 1) }));
-    return { cells, width: C + 0.5, height: R, rowLabels, colLabels: [], marks: [], shape: 'side' };
+    return { ...tubeLayoutOf(p), marks: [], shape: 'side' };
   },
-  neighbors(p, id) {
-    const C = p.tube.around, n = C * p.tube.rows;
-    return [id - 1, id + 1, id - C, id - C - 1, id + C, id + C + 1].filter((k) => k >= 0 && k < n);
-  },
+  neighbors: (p, id) => stitchNeighbors(tubeLayoutOf(p), id),
   mirror: () => null,
   allBeads: (p) => p.tube.beads,
 };
@@ -345,7 +335,7 @@ export function setStitch(p, changes) {
   p.stitch = st;
 }
 
-export { stitchLayoutOf };
+export { stitchLayoutOf, tubeLayoutOf };
 
 // Figurka na krzyż: koraliki na krawędziach oczek, schemat płaski z numerami oczek.
 // Figurka może mieć kilka kulek (tułów, głowa…) — numery koralików idą przez całą
@@ -447,11 +437,7 @@ export function repeatPattern(p, len) {
   } else if (p.mode === 'stitch') {
     repeatStitchRows(p.stitch, p.stitch.beads, len);
   } else if (p.mode === 'tube') {
-    const t = p.tube;
-    len = Math.max(1, Math.min(t.rows, len | 0));
-    for (let r = len; r < t.rows; r++) for (let c = 0; c < t.around; c++) {
-      t.beads[r * t.around + c] = t.beads[(r % len) * t.around + c];
-    }
+    repeatStitchRows(crochetOf(p.tube), p.tube.beads, len);
   }
 }
 
@@ -629,17 +615,7 @@ export function instructions(p) {
   } else if (p.mode === 'ball') {
     lines.push(...ballInstructions(p.ball, runText, plural));
   } else if (p.mode === 'tube') {
-    const { around: C, beads } = p.tube;
-    lines.push({
-      head: 'Kolejność nawlekania',
-      note: `Nawlekaj od góry listy. Pierwszy nawleczony koralik trafi na koniec wężyka, więc lista idzie od ostatniego rzędu do pierwszego. Na obwodzie ${C} koralików.`,
-    });
-    const reversed = [...beads].reverse();
-    let pos = 0;
-    for (const r of runs(reversed)) {
-      lines.push({ num: `${pos + 1}${r.n > 1 ? `–${pos + r.n}` : ''}`, text: runText(r), color: r.color });
-      pos += r.n;
-    }
+    lines.push(...stitchInstructions(crochetOf(p.tube), p.tube.beads, runText));
   } else {
     const { w, d, h, voxels } = p.figure;
     lines.push({ head: 'Warstwy od dołu', note: 'Każda warstwa to płaski plaster figurki; rzędy liczone od przodu (góra schematu).' });

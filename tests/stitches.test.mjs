@@ -119,3 +119,33 @@ test('tryb ścieg w projekcie: zapis, wypełnianie, wymiary, instrukcja, usuwani
   assert.deepEqual(p.stitch.beads, [1, 1, 0, 1, 1, 0]);
   assert.equal(modeApi.stitch.layout(p, {}).cells.length, 6);
 });
+
+test('wężyk w silniku ściegów: zawsze rurka 3–16, sąsiedzi wzdłuż spirali także na szwie', () => {
+  const st = fixStitch({ kind: 'crochet', form: 'flat', width: 40, rows: 5 });
+  assert.equal(st.form, 'tube');
+  assert.equal(st.width, 16);
+  assert.equal(fixStitch({ kind: 'crochet', width: 1 }).width, 3);
+  const l = stitchLayout(fixStitch({ kind: 'crochet', width: 6, rows: 4 }), BEAD);
+  assert.equal(l.width, 6.5, 'na obwodzie mieści się 6,5 koralika');
+  // Koralik 5 (koniec rzędu 1) i 6 (początek rzędu 2) leżą obok siebie na spirali.
+  assert.ok(stitchNeighbors(l, 5).includes(6));
+  assert.deepEqual([...stitchNeighbors(l, 7)].sort((a, b) => a - b), [0, 1, 6, 8, 13, 14]);
+  // Spirala: każdy koralik o 1/6,5 obrotu dalej i odrobinę wyżej.
+  assert.ok(Math.abs(l.cells[13].theta - 2 * Math.PI * 2) < 1e-9);
+  assert.ok(l.cells[1].v > l.cells[0].v);
+  const lines = stitchInstructions(fixStitch({ kind: 'crochet', width: 3, rows: 2 }), [0, 0, 1, 1, 1, 2], (r) => `${r.n}×${r.color}`);
+  assert.deepEqual(lines.slice(1).map((x) => `${x.num}: ${x.text}`), ['1: 1×2', '2–4: 3×1', '5–6: 2×0'], 'od ostatniego koralika');
+});
+
+test('wężyka nie ma na liście ściegów; ścieg-wężyk z pliku staje się peyote', () => {
+  const p = createProject();
+  p.stitch = { ...p.stitch, kind: 'crochet' };
+  const back = normalizeProject(JSON.parse(JSON.stringify(p)));
+  assert.equal(back.stitch.kind, 'peyote');
+  assert.equal(back.stitch.beads.length, stitchCount(back.stitch));
+  assert.ok(STITCHES.crochet.ownMode);
+  // Wypełnianie w trybie wężyka przechodzi przez szew spirali.
+  const q = createBlankProject('tube');
+  floodFill(q, {}, 0, 4);
+  assert.ok(q.tube.beads.every((c) => c === 4));
+});
