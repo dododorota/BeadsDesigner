@@ -241,3 +241,23 @@ test('zapis i wczytanie części; zmiana rozmiaru tułowia przenosi miejsce docz
   assert.ok(lay.labels.some((l) => l.text.endsWith('◆')));
   assert.ok(modeApi.ball.layout(q, {}).labels[top].text.endsWith('◆'));
 });
+
+import { ballThread } from '../js/ball.js';
+
+test('ścieżka nici w figurce: od ostatniego istniejącego koralika przez nowe, krzyż na ostatnim', () => {
+  const s = ballShape('b120'), lay = ballLayout('b120');
+  const at = (id) => [lay.cells[id].x + 0.5, lay.cells[id].y + 0.5];
+  const first = ballThread('b120', 0);
+  assert.equal(first.main[0].length, 6, '5 koralików i powrót do pierwszego');
+  const st = s.steps[7];
+  const t = ballThread('b120', 7);
+  assert.deepEqual(t.main[0].slice(1), st.added.map(at));
+  assert.ok(st.existing.some((id) => JSON.stringify(at(id)) === JSON.stringify(t.main[0][0])), 'start w istniejącym koraliku');
+  assert.deepEqual(t.marks, [at(st.added.at(-1))]);
+  assert.equal(t.faint[0].length, st.size + 1, 'obwód oczka zamknięty');
+  assert.equal(ballThread('b120', s.steps.length - 1).main.length, 0, 'ostatnie oczko nic nie dodaje');
+  // Na schemacie figurki ścieżka pojawia się tylko dla wybranego oczka.
+  const p = createBlankProject('ball');
+  assert.equal(modeApi.ball.layout(p, { thread: true, ballStep: 0 }).thread, null);
+  assert.equal(modeApi.ball.layout(p, { thread: true, ballStep: 8 }).thread.label, 'Oczko 8');
+});

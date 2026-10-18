@@ -490,6 +490,67 @@ export class ChartEditor {
       g.restore();
     }
 
+    // Ścieżka nici: bieżący krok wyraźnie, ze strzałkami kierunku; poprzedni blado.
+    if (layout.thread) {
+      const at = (q) => [MARGIN.left + q[0] * S, MARGIN.top + q[1] * S];
+      const line = (path, width, color, alpha) => {
+        g.save();
+        g.strokeStyle = color;
+        g.globalAlpha = alpha;
+        g.lineWidth = width;
+        g.lineJoin = 'round';
+        g.lineCap = 'round';
+        g.beginPath();
+        let pen = false;
+        for (const q of path) {
+          if (!q) { pen = false; continue; }
+          const [x, y] = at(q);
+          if (pen) g.lineTo(x, y); else g.moveTo(x, y);
+          pen = true;
+        }
+        g.stroke();
+        g.restore();
+      };
+      const arrows = (path, color) => {
+        g.save();
+        g.fillStyle = color;
+        const k = Math.max(4, S * 0.22);
+        for (let i = 1; i < path.length; i++) {
+          const a = path[i - 1], b = path[i];
+          if (!a || !b) continue;
+          const [x1, y1] = at(a), [x2, y2] = at(b);
+          if (Math.hypot(x2 - x1, y2 - y1) < S * 0.55) continue;
+          const ang = Math.atan2(y2 - y1, x2 - x1), mx = (x1 + x2) / 2, my = (y1 + y2) / 2;
+          g.beginPath();
+          g.moveTo(mx + Math.cos(ang) * k * 0.7, my + Math.sin(ang) * k * 0.7);
+          g.lineTo(mx + Math.cos(ang + 2.5) * k, my + Math.sin(ang + 2.5) * k);
+          g.lineTo(mx + Math.cos(ang - 2.5) * k, my + Math.sin(ang - 2.5) * k);
+          g.closePath();
+          g.fill();
+        }
+        g.restore();
+      };
+      const accent = tok('--accent'), ink = tok('--ink'), halo = tok('--chart-bg');
+      for (const path of layout.thread.faint) line(path, Math.max(1.5, S * 0.07), ink, 0.5);
+      for (const path of layout.thread.main) {
+        line(path, Math.max(4, S * 0.2), halo, 0.7);
+        line(path, Math.max(2, S * 0.1), accent, 1);
+        arrows(path, accent);
+      }
+      // Koralik, przez który przekładasz drugą końcówkę żyłki na krzyż.
+      for (const q of layout.thread.marks) {
+        const [x, y] = at(q);
+        g.save();
+        g.strokeStyle = accent;
+        g.lineWidth = Math.max(2, S * 0.09);
+        g.setLineDash([Math.max(3, S * 0.14), Math.max(2, S * 0.1)]);
+        g.beginPath();
+        g.arc(x, y, S * 0.62, 0, Math.PI * 2);
+        g.stroke();
+        g.restore();
+      }
+    }
+
     // Środek naszyjnika.
     g.fillStyle = tok('--accent');
     for (const id of layout.marks) {
@@ -521,6 +582,16 @@ export class ChartEditor {
       const m = mirrorOf?.(this.hover);
       if (m !== null && m !== undefined && m !== this.hover) ring(m, true);
     }
+  }
+
+  // Przewija schemat tak, żeby punkty (w jednostkach schematu) były widoczne, najlepiej na środku.
+  reveal(points) {
+    const pts = points.filter(Boolean);
+    if (!pts.length) return;
+    const S = this.zoom, sc = this.scroller;
+    const xs = pts.map((q) => MARGIN.left + q[0] * S), ys = pts.map((q) => MARGIN.top + q[1] * S);
+    const cx = (Math.min(...xs) + Math.max(...xs)) / 2, cy = (Math.min(...ys) + Math.max(...ys)) / 2;
+    sc.scrollTo({ left: cx - sc.clientWidth / 2, top: cy - sc.clientHeight / 2, behavior: 'smooth' });
   }
 
   toBlob() {

@@ -147,6 +147,14 @@
         <span id="stitchRepeatUnit">rzędów</span>
         <button id="stitchRepeat" class="btn btn-small" type="button">Powiel</button>
       </div>
+      <h3 class="panel-subtitle panel-subtitle-gap">Ścieżka nici</h3>
+      <label class="check"><input id="stitchThread" type="checkbox"> Pokaż na schemacie</label>
+      <div class="inline-action" id="stitchThreadNav">
+        <button id="threadPrev" class="btn btn-small" type="button" aria-label="Poprzedni rząd">◀</button>
+        <span id="threadLabel" class="thread-label"></span>
+        <button id="threadNext" class="btn btn-small" type="button" aria-label="Następny rząd">▶</button>
+      </div>
+      <p class="hint" id="stitchThreadHint"></p>
     </section>
 
     <section class="panel" data-for="ball">
@@ -186,6 +194,8 @@
         <button id="ballStepNext" class="btn btn-small" type="button" aria-label="Następne oczko">▶</button>
       </div>
       <p class="hint">0 = cała figurka. Koraliki z bieżącego oczka są wyraźne, wcześniejsze przezroczyste.</p>
+      <label class="check"><input id="ballThread" type="checkbox"> Pokaż ścieżkę nici na schemacie</label>
+      <p class="hint" id="ballThreadHint" hidden>Linia ze strzałkami: nowe koraliki, które nawlekasz na jedną końcówkę żyłki. Przerywane kółko: koralik, przez który przekładasz drugą końcówkę na krzyż. Blady obrys: całe oczko.</p>
     </section>
 
     <section class="panel" data-for="figure">

@@ -155,12 +155,14 @@ function workOrder(g) {
     } else {
       from = cyc.reduce((best, ei, k) => (midTop(g, ei) > midTop(g, cyc[best]) ? k : best), 0);
     }
-    const added = [], existing = [];
+    const added = [], existing = [], around = [];
     for (let k = 0; k < cyc.length; k++) {
       const ei = cyc[(from + k) % cyc.length];
       if (beadOf[ei] < 0) { beadOf[ei] = next++; added.push(beadOf[ei]); } else existing.push(beadOf[ei]);
+      around.push(beadOf[ei]);
     }
-    steps.push({ face: fi, size: cyc.length, added, existing, ring: ring[fi] });
+    // `around`: koraliki oczka po kolei dookoła, zaczynając od pierwszego nowego.
+    steps.push({ face: fi, size: cyc.length, added, existing, around, ring: ring[fi] });
   }
   return { beadOf, steps };
 }
@@ -514,6 +516,21 @@ export function ballLayout(key) {
   const lay = { cells, lines, labels, width, height };
   layoutCache.set(key, lay);
   return lay;
+}
+
+// Ścieżka nici dla oczka `step` (numer kroku) na schemacie kulki: obwód oczka (blado),
+// nowe koraliki nawlekane na jedną końcówkę żyłki (ze strzałkami, od ostatniego
+// istniejącego koralika) i koralik, przez który przekładasz drugą końcówkę na krzyż.
+export function ballThread(key, step) {
+  const shape = ballShape(key), lay = ballLayout(key);
+  const st = shape.steps[step];
+  if (!st) return null;
+  const at = (id) => [lay.cells[id].x + 0.5, lay.cells[id].y + 0.5];
+  const ring = [...st.around, st.around[0]].map(at);
+  if (!st.added.length) return { label: `Oczko ${step + 1}`, faint: [ring], main: [], marks: [] };
+  const before = st.around[st.around.length - 1];
+  const main = (step === 0 ? [...st.added, st.added[0]] : [before, ...st.added]).map(at);
+  return { label: `Oczko ${step + 1}`, faint: [ring], main: [main], marks: [at(st.added[st.added.length - 1])] };
 }
 
 // ---------------------------------------------------------------- 3D

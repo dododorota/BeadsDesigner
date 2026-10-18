@@ -2,14 +2,14 @@
 
 import { BEAD_TYPES, FINISHES, SHAPES, SUGGESTED_COLORS, beadsPerGram } from './beads.js';
 import {
-  EMPTY, addShape, baseBead, beadOf, clearLayer, currentPart, setBallShape, setStitch, stitchLayoutOf, copyLayer, countColors, createBlankProject, createProject,
+  EMPTY, addShape, baseBead, beadOf, clearLayer, currentPart, setBallShape, stitchThreadAt, setStitch, stitchLayoutOf, copyLayer, countColors, createBlankProject, createProject,
   dimensions, floodFill, motifRoleText, hollow, instructions, instructionsText, mirrorStrand, modeApi, normalizeProject,
   removePaletteColor, repeatPattern, resizeFigure, resizeStrand, resizeTube, usage,
 } from './model.js';
 import { ChartEditor } from './chart.js';
 import { Preview3D } from './preview3d.js';
 import { Library, openBackend, parseImport } from './storage.js';
-import { STITCHES, rowsFromVisible, visibleRows } from './stitches.js';
+import { STITCHES, hasThread, rowsFromVisible, visibleRows } from './stitches.js';
 import { MOTIFS, clearMotifs, fillMotifs, groupAt, insertMotif, removeMotifAt } from './motifs.js';
 import {
   BALL_SHAPES, EXTRA_KINDS, STRETCH, addPart, ballShape, extraAt, extraMirrorIndex, extraSize, locate, partAt, partJoin, partName,
@@ -50,6 +50,7 @@ const ui = {
   ballStep: 0,
   ballPart: -1,
   partShape: 'b30',
+  thread: false, threadStep: 0,
 };
 const history = { undo: [], redo: [] };
 let strokeChanged = false;
@@ -418,6 +419,8 @@ function renderBallControls() {
   setNumber('ballSy', b.sy);
   setNumber('ballSz', b.sz);
   $('ballMirror').checked = ball.mirror;
+  $('ballThread').checked = ui.thread;
+  $('ballThreadHint').hidden = !ui.thread;
   $('partShape').value = ui.partShape;
   $('partAt').max = ballShape(b.shape).steps.length;
   $('partAtOf').textContent = pi < 0 ? 'tułowia' : 'tej kulki';
@@ -438,6 +441,11 @@ function setBallStep(v) {
   ui.ballStep = Math.max(0, Math.min(steps, Math.round(Number(v) || 0)));
   setNumber('ballStep', ui.ballStep);
   schedulePreview();
+  if (ui.thread) {
+    renderChart();
+    const t = modeApi.ball.layout(project, ui).thread;
+    if (t) chart.reveal(t.faint[0]);
+  }
 }
 
 function renderMotifControls() {
@@ -477,6 +485,28 @@ function renderStitchControls() {
   $('stitchMirrorField').hidden = tube;
   $('stitchMirror').checked = st.mirror;
   $('stitchRepeatUnit').textContent = praw ? 'klatek' : 'rzędów';
+  const thread = hasThread(st) ? stitchThreadAt(project, ui) : null;
+  $('stitchThread').checked = ui.thread;
+  $('stitchThread').disabled = !thread;
+  $('stitchThreadNav').hidden = !(ui.thread && thread);
+  if (thread) {
+    ui.threadStep = thread.index;
+    $('threadLabel').textContent = `${thread.label} · ${thread.index + 1} z ${thread.count}`;
+    $('threadPrev').disabled = thread.index === 0;
+    $('threadNext').disabled = thread.index === thread.count - 1;
+  }
+  $('stitchThreadHint').textContent = !thread
+    ? 'Dla tego ściegu ścieżki nici jeszcze nie rysujemy — kolejność opisuje instrukcja.'
+    : 'Gruba linia ze strzałkami: którędy idzie nić w tym rzędzie (jak w instrukcji). Cienka: poprzedni rząd.';
+}
+
+// Przejście do innego rzędu na ścieżce nici — schemat przewija się do niego.
+function setThreadStep(i) {
+  ui.threadStep = Math.max(0, i);
+  renderStitchControls();
+  renderChart();
+  const t = stitchThreadAt(project, ui);
+  if (t) chart.reveal(t.main[0]);
 }
 
 function renderPalette() {
@@ -703,6 +733,20 @@ function bind() {
     setNumber('extraSize', ui.extraSize[ui.extraKind]);
   });
   $('ballStep').addEventListener('change', (e) => setBallStep(e.target.value));
+  $('ballThread').addEventListener('change', (e) => {
+    ui.thread = e.target.checked;
+    renderBallControls();
+    // Ścieżka dotyczy jednego oczka — bez wybranego oczka zaczynamy od pierwszego.
+    if (ui.thread && !ui.ballStep) setBallStep(1);
+    else renderChart();
+  });
+  $('stitchThread').addEventListener('change', (e) => {
+    ui.thread = e.target.checked;
+    if (ui.thread) setThreadStep(ui.threadStep);
+    else { renderStitchControls(); renderChart(); }
+  });
+  $('threadPrev').addEventListener('click', () => setThreadStep(ui.threadStep - 1));
+  $('threadNext').addEventListener('click', () => setThreadStep(ui.threadStep + 1));
   $('ballStepPrev').addEventListener('click', () => setBallStep(ui.ballStep - 1));
   $('ballStepNext').addEventListener('click', () => setBallStep(ui.ballStep + 1));
   preview.onTap = previewTap;

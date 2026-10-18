@@ -34,6 +34,8 @@ figurkę na krzyż (np. żabkę z przykładu) albo figurkę warstwami.
   demi round, kostki, trójkąty, rurki 3–12 mm, krople i magatamy, Tila, bicone, perełki — oraz wykończenie
   (nieprzezroczysty, przezroczysty, matowy, perłowy, metaliczny). Widać je na schemacie i w podglądzie 3D.
 - **Zużycie**: liczba koralików każdego rodzaju i przybliżona waga w gramach.
+- **Ścieżka nici**: na schemacie ściegu rząd po rzędzie (◀ ▶) widać, którędy idzie nić; w figurce — dla wybranego oczka,
+  razem z koralikiem, przez który przekładasz drugą końcówkę żyłki na krzyż.
 - **Instrukcja**: kolejność nawlekania (naszyjnik, wężyk — od końca) albo warstwy rząd po rzędzie (figurka); można ją skopiować.
 - **Moje projekty**: wiele projektów na urządzeniu, z miniaturkami; otwórz, duplikuj, usuń. Projekt zapisuje się sam
   (także w chwili zamknięcia aplikacji). „Eksportuj wszystkie” zapisuje kopię zapasową w jednym pliku,

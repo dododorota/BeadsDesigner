@@ -268,6 +268,99 @@ export function repeatStitchRows(st, beads, len) {
   for (let i = first + len; i < beads.length; i++) beads[i] = beads[first + ((i - first) % len)];
 }
 
+// ---------------------------------------------------------------- ścieżka nici
+
+// Droga nici przez koraliki, krok po kroku — te same kroki i nazwy co w instrukcji.
+// Każdy krok to { label, path }, a path to punkty [x, y] na schemacie (środek koralika
+// to x + 0.5, y + 0.5); null przerywa linię (w rurce, gdzie schemat się zawija).
+// PRAW/CRAW (nić idzie w głąb klatek) i wężyk (szydełko, nie igła) nie mają ścieżki.
+export const hasThread = (st) => st.kind !== 'praw' && st.kind !== 'crochet';
+
+export function stitchThread(st, lay) {
+  if (!hasThread(st)) return [];
+  const W = st.width, R = st.rows, tube = st.form === 'tube';
+  const cell = (r, c) => lay.cells[r * W + c];
+  const ctr = (r, c) => { const q = cell(r, c); return [q.x + 0.5, q.y + 0.5]; };
+  // Koniec koralika wzdłuż otworu: s = 1 — górny/prawy, s = -1 — dolny/lewy (kąt `a` w układzie „y w górę”).
+  const end = (r, c, s, k = 0.42) => { const q = cell(r, c); return [q.x + 0.5 + s * k * Math.cos(q.a), q.y + 0.5 - s * k * Math.sin(q.a)]; };
+  const cols = (dir) => { const list = [...Array(W).keys()]; return dir === '←' ? list.reverse() : list; };
+  const dirOf = (r) => (tube || r % 2 === 0 ? '→' : '←');
+  const word = tube ? 'Okr.' : 'Rz.';
+  const label = (n, dir) => `${word} ${n}${tube ? '' : ` ${dir}`}`;
+  const steps = [];
+  // Ladder: nić idzie w górę przez jeden koralik i w dół przez następny; w rurce zamyka kółko.
+  const ladder = (r) => {
+    const path = [];
+    cols('→').forEach((c, i) => path.push(end(r, c, i % 2 ? 1 : -1), end(r, c, i % 2 ? -1 : 1)));
+    if (tube) path.push(end(r, 0, -1));
+    return path;
+  };
+
+  if (st.kind === 'peyote') {
+    // Rzędy 1–2 nawlekasz naraz; potem nić przechodzi na zmianę przez nowy koralik
+    // i przez wystający koralik rzędu poniżej. W rurce na końcu okrążenia — step up.
+    steps.push({ label: label('1–2', '→'), path: cols('→').map((c) => ctr(0, c)) });
+    for (let t = 2; t < 2 * R; t++) {
+      const r = t >> 1, below = (t - 1) >> 1, parity = t % 2, dir = tube ? '→' : t % 2 ? '→' : '←';
+      const order = cols(dir);
+      const path = order.map((c) => (c % 2 === parity ? ctr(r, c) : ctr(below, c)));
+      if (tube) path.push(ctr(r, order.find((c) => c % 2 === parity)));
+      steps.push({ label: label(t + 1, dir), path });
+    }
+  } else if (st.kind === 'brick') {
+    // Każdy koralik: pod mostkiem nici rzędu poniżej i z powrotem w górę przez koralik.
+    steps.push({ label: label(1, '→'), path: ladder(0) });
+    for (let r = 1; r < R; r++) {
+      const dir = dirOf(r), path = [];
+      for (const c of cols(dir)) {
+        const [bx, by] = end(r, c, -1, 0.62);
+        path.push([bx, by], end(r, c, -1), end(r, c, 1));
+      }
+      steps.push({ label: label(r + 1, dir), path });
+    }
+  } else if (st.kind === 'herringbone') {
+    // Para kolumn: w górę przez koralik poniżej, dwa nowe, w dół przez sąsiedni poniżej.
+    steps.push({ label: label(1, '→'), path: ladder(0) });
+    for (let r = 1; r < R; r++) {
+      const dir = dirOf(r), path = [];
+      const pairs = [...Array(W / 2).keys()];
+      for (const k of dir === '←' ? pairs.reverse() : pairs) {
+        const [c0, c1] = dir === '←' ? [2 * k + 1, 2 * k] : [2 * k, 2 * k + 1];
+        path.push(ctr(r - 1, c0), ctr(r, c0), ctr(r, c1), ctr(r - 1, c1));
+      }
+      steps.push({ label: label(r + 1, dir), path });
+    }
+  } else if (st.kind === 'ladder') {
+    // Szczebel po szczeblu: w górę przez jeden, w dół przez następny.
+    for (let c = 0; c < W; c++) {
+      const path = [];
+      for (let k = Math.max(0, c - 1); k <= c; k++) path.push(k % 2 ? end(R - 1, k, 1) : end(0, k, -1), k % 2 ? end(0, k, -1) : end(R - 1, k, 1));
+      steps.push({ label: `Szcz. ${c + 1}`, path });
+    }
+  } else {
+    // Square stitch: każdy nowy koralik łączysz z koralikiem pod nim.
+    steps.push({ label: label(1, '→'), path: cols('→').map((c) => ctr(0, c)) });
+    for (let r = 1; r < R; r++) {
+      const path = [];
+      for (const c of cols('→')) path.push(ctr(r - 1, c), ctr(r, c));
+      steps.push({ label: label(r + 1, '→'), path });
+    }
+  }
+  // W rurce schemat się zawija — tam, gdzie nić przechodzi na drugi brzeg, przerywamy linię.
+  if (tube) {
+    for (const stp of steps) {
+      const out = [];
+      stp.path.forEach((q, i) => {
+        const prev = stp.path[i - 1];
+        if (prev && Math.abs(q[0] - prev[0]) > lay.period / 2) out.push(null);
+        out.push(q);
+      });
+      stp.path = out;
+    }
+  }
+  return steps;
+}
+
 // ---------------------------------------------------------------- instrukcja
 
 function runs(list) {

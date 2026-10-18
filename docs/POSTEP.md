@@ -20,7 +20,8 @@ Aktualizujemy go przy każdym etapie pracy (checkpoint), najnowsze wpisy są na 
 - [x] Etap 4 — tryb „Figurka” na krzyż: kulka z oczek, schemat jak z Pinteresta, instrukcja oczko po oczku, malowanie w 3D, dodatki, zawieszka
 - [x] Etap 5 — figurki z kilku kulek (głowa, łapki, ogonek) i paski z oczek (uszy, płetwy)
 - [x] Dokumentacja (ten plik + README), 56 testów, wypchnięte na `main` (`bf9224f`)
-- [x] Wężyk szydełkowy przeniesiony do silnika ściegów — 58 testów; **zmiany tylko lokalnie, bez commita** (commituje i wypycha Dorota)
+- [x] Wężyk szydełkowy przeniesiony do silnika ściegów (commit Doroty `8f0624c`)
+- [x] Ścieżka nici na schematach ściegów i figurek — 61 testów; **zmiany tylko lokalnie, bez commita** (commituje i wypycha Dorota)
 
 **Do zrobienia — Dorota**
 - [x] Repo publiczne (2026-10-14)
@@ -31,13 +32,13 @@ Aktualizujemy go przy każdym etapie pracy (checkpoint), najnowsze wpisy są na 
 
 **Do zrobienia — następna sesja (do wyboru)**
 - [ ] Poprawki po teście na iPadzie (najpierw to, jeśli są uwagi)
-- [ ] Ograniczenia z list niżej (np. ścieżka nici na schematach)
+- [ ] Ograniczenia z list niżej (np. ścieżka nici dla PRAW/CRAW, pasek z oczek szerszy niż jedno oczko)
 - [ ] 💡 Konstrukcje z rurek, import zdjęcia → wzór, kolory Miyuki/Toho z numerami
 
 **Git:** Claude nie robi commitów, gałęzi ani `git push` — wszystko zostaje lokalnie, Dorota commituje sama.
 
 **Jak zacząć jutro:** przeczytać tę sekcję, sprawdzić `git status` / `git log` (gałąź `main` śledzi `origin/main`),
-uruchomić `npm test` (56 testów) i zapytać Dorotę o wyniki testu na iPadzie oraz wybór z listy wyżej.
+uruchomić `npm test` (61 testów) i zapytać Dorotę o wyniki testu na iPadzie oraz wybór z listy wyżej.
 
 <details>
 <summary>Rozważane drogi instalacji (archiwum decyzji)</summary>
@@ -91,6 +92,7 @@ perełki 4 mm w „ścianach”).
 | Schemat ściegu: koraliki obrócone jak otwór (poziomo, pionowo, jodełka), rzędy numerowane jak w danym ściegu | ✅ |
 | Podgląd 3D ściegu: płaska robótka albo rurka; PRAW na prawdziwym wielokącie | ✅ |
 | Instrukcja ściegu rząd po rzędzie (kierunek pracy, start ladder / rzędy 1–2 peyote, klatki PRAW) | ✅ |
+| Ścieżka nici na schemacie rząd po rzędzie (◀ ▶): peyote, brick, herringbone, square, ladder — płasko i w rurkę | ✅ (bez PRAW/CRAW i wężyka) |
 | Odbicie lewo–prawo, powielanie rzędów/klatek, wypełnianie z zawijaniem w rurce | ✅ |
 | Motywy na naszyjniku: stokrotka (4–10 płatków + środek), pętelka (3–40), frędzel (2–40, z koralikiem zwrotnym) | ✅ |
 | Narzędzie „Motyw” (M): stuknięcie w koralik wstawia za nim motyw, stuknięcie w motyw go usuwa | ✅ |
@@ -111,6 +113,7 @@ perełki 4 mm w „ścianach”).
 | Wybór kulki na schemacie, nazwa, usuwanie (z parą i tym, co do niej doczepione); stuknięcie w kulkę w 3D przełącza schemat | ✅ |
 | Instrukcja: każda kulka osobno, potem „Zszyj oczko X z oczkiem Y”; oczka łączenia oznaczone ◆ na schemacie | ✅ |
 | „Pokaż w 3D do oczka N” — nauka kolejności pracy | ✅ |
+| Ścieżka nici dla wybranego oczka na schemacie: nowe koraliki na jedną końcówkę żyłki, koralik krzyżowania | ✅ |
 | Zawieszka na naszyjniku: figurka na krzyż albo figurka warstwami | ✅ |
 | Zmiana rozmiaru kulki przenosi kolory i dodatki według położenia na bryle | ✅ |
 
@@ -186,7 +189,7 @@ Wymagany iPadOS 16.4 lub nowszy (import map w Safari).
   ani pasków szerszych niż jedno oczko (np. płetwa z 3 oczek obok siebie).
 - **Kolejność oczek** jest wyliczana automatycznie (pierścieniami od przodu) — może różnić się od schematu z internetu.
 - **Mieszane rozmiary** (np. większe oczka 8/0) rysują się we właściwym rozmiarze, ale bryła liczona jest dla najczęstszego koralika.
-- Instrukcja opisuje technikę na krzyż słowami; nie ma rysunku ścieżek dwóch końcówek żyłki.
+- Ścieżka nici pokazuje jedno oczko naraz na schemacie płaskim; nie ma jej w podglądzie 3D ani dla dodatków.
 - Zużycie w trybie „Naszyjnik” liczy tylko naszyjnik — zawieszkę liczy się w jej trybie („Figurka”).
 
 ## Znane ograniczenia motywów
@@ -203,7 +206,9 @@ Wymagany iPadOS 16.4 lub nowszy (import map w Safari).
 - **Odbicie w peyote przy parzystej liczbie kolumn** jest przybliżone: lustrzana kolumna ma drugą parzystość, więc jest pół koralika wyżej/niżej.
 - **Mieszane rozmiary koralików** w ściegu rysują się we właściwym kształcie i rozmiarze, ale siatka liczona jest dla najczęstszego koralika.
 - **Herringbone:** pochylenie koralików i skręt (pół koralika na rząd) są stałe, przybliżone.
-- **Ścieżka nici** nie jest rysowana — instrukcja opisuje kolejność słowami.
+- **Ścieżka nici** jest uproszczona: linia przez środki koralików (w ladder i brick przez ich końce), bez pętli
+  i zawiązywania nowej nici. Square rysujemy jak square stitch — na krośnie nić idzie inaczej (przez cały rząd tam i z powrotem).
+  PRAW/CRAW (nić w głąb klatek) i wężyk (szydełko) nie mają ścieżki.
 
 ---
 
@@ -231,6 +236,9 @@ Wymagany iPadOS 16.4 lub nowszy (import map w Safari).
   (`around`, `rows`, `beads`) — format pliku bez zmian. Wężyka nie ma na liście ściegów w trybie „Ścieg”, żeby nie było dwóch
   miejsc na to samo. Sąsiedzi wężyka idą wzdłuż spirali (±1, ±C, ±(C+1)), a nie po odległości na schemacie — na szwie spirali
   kolejne koraliki leżą na schemacie na ukos.
+- **Ścieżka nici = kroki instrukcji** (2026-10-17): `stitchThread` w `js/stitches.js` i `ballThread` w `js/ball.js`
+  zwracają kroki o tych samych nazwach co linie instrukcji, z punktami w jednostkach schematu; schemat rysuje bieżący
+  krok i blado poprzedni. W rurce linia przerywa się tam, gdzie schemat się zawija.
 - **Peyote liczy rzędy jak w peyote:** pole „Rzędów” i instrukcja podają przejścia igłą (2 na każdy koralik w kolumnie).
 - **Zmiana ściegu albo rozmiaru zachowuje wzór** w tych samych rzędach i kolumnach (nowe miejsca powtarzają istniejący wzór).
 - **Motyw = grupa kolejnych koralików na tej samej nitce** (`strand.groups: [{ start, n, kind, side, rev }]`).
@@ -253,6 +261,15 @@ Wymagany iPadOS 16.4 lub nowszy (import map w Safari).
 ---
 
 ## Dziennik
+
+### 2026-10-17 — Ścieżka nici na schematach (lokalnie, bez commita)
+- Ściegi: „Ścieżka nici → Pokaż na schemacie” i ◀ ▶ rząd po rzędzie; schemat przewija się do bieżącego rzędu.
+  Peyote (na zmianę nowy i wystający koralik, step up w rurce), brick (pod mostkiem i w górę), herringbone (pary),
+  square stitch, ladder (w górę i w dół).
+- Figurka: „Pokaż ścieżkę nici na schemacie” dla oczka z „Krok po kroku” — obwód oczka, nowe koraliki ze strzałkami
+  od ostatniego istniejącego, przerywane kółko na koraliku krzyżowania.
+- Testy: 61 (3 nowe: nazwy kroków = instrukcja dla każdego ściegu, peyote, figurka). Sprawdzone w Chrome na zrzutach:
+  peyote, brick, herringbone w rurce, ladder, PRAW (wyłączone z podpowiedzią), figurka oczko 10.
 
 ### 2026-10-17 — Wężyk szydełkowy w silniku ściegów (lokalnie, bez commita)
 - Nowy ścieg `crochet` w `js/stitches.js`; tryb „Wężyk” w `js/model.js` i podgląd 3D korzystają z silnika ściegów.

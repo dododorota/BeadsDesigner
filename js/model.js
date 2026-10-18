@@ -3,10 +3,10 @@
 
 import { BEAD_TYPES, DEFAULT_BEAD, DEFAULT_PALETTE, LEGACY_SIZES, beadType, beadsToGrams } from './beads.js';
 import {
-  fixStitch, plural, remapBeads, repeatStitchRows, stitchCount, stitchInstructions, stitchLayout, stitchMirror, stitchNeighbors,
+  fixStitch, plural, remapBeads, repeatStitchRows, stitchCount, stitchInstructions, stitchLayout, stitchMirror, stitchNeighbors, stitchThread,
 } from './stitches.js';
 import {
-  BALL_SHAPES, BODY, ballColors, ballInstructions, ballLayout, ballMirror, ballNeighbors, ballParts3D, ballShape, extraSize, fixBall,
+  BALL_SHAPES, BODY, ballColors, ballInstructions, ballThread, ballLayout, ballMirror, ballNeighbors, ballParts3D, ballShape, extraSize, fixBall,
   fixExtras, fixParts, locate, partAt, partJoin, partOffset, setPartShape,
 } from './ball.js';
 import { MOTIFS, fixGroups, mirrorWithMotifs, repeatWithMotifs, roleInGroup, strandSlots, trimGroups } from './motifs.js';
@@ -315,12 +315,20 @@ const tubeMode = {
 // Ścieg: układ koralików liczy silnik ściegów (stitches.js) dla podstawowego koralika projektu.
 const stitchLayoutOf = (p) => stitchLayout(p.stitch, baseBead(p, p.stitch.beads));
 
+// Ścieżka nici dla kroku `ui.threadStep` (bieżący krok wyraźnie, poprzedni blado).
+export function stitchThreadAt(p, ui) {
+  const steps = stitchThread(p.stitch, stitchLayoutOf(p));
+  if (!steps.length) return null;
+  const i = Math.max(0, Math.min(steps.length - 1, ui?.threadStep ?? 0));
+  return { label: steps[i].label, index: i, count: steps.length, main: [steps[i].path], faint: i > 0 ? [steps[i - 1].path] : [], marks: [] };
+}
+
 const stitchMode = {
   get: (p, id) => p.stitch.beads[id],
   set: (p, id, c) => { p.stitch.beads[id] = c; },
-  layout(p) {
+  layout(p, ui) {
     const lay = stitchLayoutOf(p);
-    return { ...lay, marks: [], shape: 'side' };
+    return { ...lay, marks: [], shape: 'side', thread: ui?.thread ? stitchThreadAt(p, ui) : null };
   },
   neighbors: (p, id) => stitchNeighbors(stitchLayoutOf(p), id),
   mirror: (p, id) => stitchMirror(p.stitch, id),
@@ -358,7 +366,8 @@ const ballMode = {
     const joined = new Set(ball.parts.filter((q) => q.parent === pi).map((q) => q.at));
     if (pi >= 0) joined.add(partJoin(ball, pi));
     const labels = joined.size ? lay.labels.map((l, i) => (joined.has(i) ? { ...l, text: `${l.text}◆` } : l)) : lay.labels;
-    return { ...lay, cells, labels, rowLabels: [], colLabels: [], marks: [], badges, shape: 'side' };
+    const thread = ui?.thread && ui.ballStep > 0 ? ballThread(part.shape, ui.ballStep - 1) : null;
+    return { ...lay, cells, labels, rowLabels: [], colLabels: [], marks: [], badges, shape: 'side', thread };
   },
   neighbors: (p, id) => ballNeighbors(p.ball, id),
   mirror: (p, id) => ballMirror(p.ball, id),

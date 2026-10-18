@@ -149,3 +149,34 @@ test('wężyka nie ma na liście ściegów; ścieg-wężyk z pliku staje się pe
   floodFill(q, {}, 0, 4);
   assert.ok(q.tube.beads.every((c) => c === 4));
 });
+
+import { stitchThread, hasThread } from '../js/stitches.js';
+
+test('ścieżka nici: te same kroki co instrukcja, punkty na koralikach', () => {
+  for (const kind of Object.keys(STITCHES)) for (const form of ['flat', 'tube']) {
+    const st = fixStitch({ kind, form, width: 6, rows: 4 });
+    const l = stitchLayout(st, BEAD);
+    const steps = stitchThread(st, l);
+    if (!hasThread(st)) { assert.equal(steps.length, 0, kind); continue; }
+    const rows = stitchInstructions(st, new Array(stitchCount(st)).fill(0), () => 'x').filter((x) => x.num);
+    assert.deepEqual(steps.map((s) => s.label), rows.map((x) => x.num), `${kind} ${form}: nazwy kroków`);
+    for (const s of steps) {
+      assert.ok(s.path.filter(Boolean).length >= 2, `${kind}: ścieżka ma co najmniej odcinek`);
+      for (const q of s.path.filter(Boolean)) assert.ok(q[0] >= -0.5 && q[0] <= l.width + 0.5 && q[1] >= -0.5 && q[1] <= l.height + 0.5, `${kind}: punkt na schemacie`);
+    }
+    if (form === 'tube') {
+      // Linia nie przecina całego schematu w poprzek (przerwa na zawinięciu).
+      for (const s of steps) s.path.forEach((q, i) => { const p = s.path[i - 1]; if (q && p) assert.ok(Math.abs(q[0] - p[0]) <= l.period / 2, kind); });
+    }
+  }
+});
+
+test('ścieżka nici peyote: na zmianę nowy koralik i wystający koralik rzędu poniżej', () => {
+  const st = fixStitch({ kind: 'peyote', width: 4, rows: 3 });
+  const l = stitchLayout(st, BEAD);
+  const steps = stitchThread(st, l);
+  const at = (r, c) => { const q = l.cells[r * 4 + c]; return [q.x + 0.5, q.y + 0.5]; };
+  // Rząd 3 idzie w lewo: kolumna 3 (rząd poniżej), 2 (nowy), 1 (poniżej), 0 (nowy).
+  assert.equal(steps[1].label, 'Rz. 3 ←');
+  assert.deepEqual(steps[1].path, [at(0, 3), at(1, 2), at(0, 1), at(1, 0)]);
+});
