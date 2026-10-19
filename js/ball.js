@@ -519,18 +519,54 @@ export function ballLayout(key) {
 }
 
 // Ścieżka nici dla oczka `step` (numer kroku) na schemacie kulki: obwód oczka (blado),
-// nowe koraliki nawlekane na jedną końcówkę żyłki (ze strzałkami, od ostatniego
-// istniejącego koralika) i koralik, przez który przekładasz drugą końcówkę na krzyż.
+// koraliki, które już są, a przez które przechodzi końcówka A (przerywana), nowe koraliki
+// nawlekane na A (ze strzałkami) i koralik, przez który przekładasz końcówkę B na krzyż.
 export function ballThread(key, step) {
   const shape = ballShape(key), lay = ballLayout(key);
   const st = shape.steps[step];
   if (!st) return null;
   const at = (id) => [lay.cells[id].x + 0.5, lay.cells[id].y + 0.5];
   const ring = [...st.around, st.around[0]].map(at);
-  if (!st.added.length) return { label: `Oczko ${step + 1}`, faint: [ring], main: [], marks: [] };
-  const before = st.around[st.around.length - 1];
+  if (!st.added.length) return { label: `Oczko ${step + 1}`, faint: [ring], dashed: [ring], main: [], marks: [] };
+  // `around` zaczyna się od nowych koralików, a kończy na tych, które już są.
+  const walk = st.around.slice(st.added.length);
+  const before = walk[walk.length - 1];
   const main = (step === 0 ? [...st.added, st.added[0]] : [before, ...st.added]).map(at);
-  return { label: `Oczko ${step + 1}`, faint: [ring], main: [main], marks: [at(st.added[st.added.length - 1])] };
+  return {
+    label: `Oczko ${step + 1}`, faint: [ring], dashed: walk.length > 1 ? [walk.map(at)] : [],
+    main: [main], marks: [at(st.added[st.added.length - 1])],
+  };
+}
+
+// Podpowiedź słowami do tego samego oczka. Numery koralików są jak w opisie pod
+// kursorem (w obrębie kulki), `runText` i `plural` jak w instrukcji.
+export function ballThreadTip(part, step, runText, plural) {
+  const shape = ballShape(part.shape), st = shape.steps[step];
+  if (!st) return '';
+  const runs = (ids) => {
+    const out = [];
+    for (const id of ids) {
+      const c = part.beads[id], last = out[out.length - 1];
+      if (last && last.color === c) last.n++; else out.push({ color: c, n: 1 });
+    }
+    return out.map(runText).join(', ');
+  };
+  const nr = (ids) => ids.map((id) => id + 1).join(', ');
+  const cross = st.added[st.added.length - 1];
+  const head = `Oczko ${step + 1} z ${shape.steps.length} (${st.size} koralików). `;
+  if (step === 0) {
+    return `${head}Nawlecz ${runs(st.added)} na środek żyłki. Końcówkę B przełóż przez ostatni koralik (nr ${cross + 1}, kółko) w przeciwną stronę — końcówki się krzyżują. Dociągnij: powstaje pierwsze kółko.`;
+  }
+  if (!st.added.length) {
+    const last = step === shape.steps.length - 1;
+    return `${head}Wszystkie koraliki tego oczka już są. Przełóż jedną końcówkę dookoła przez koraliki oczka i dociągnij — oczko się zamyka.`
+      + (last ? ' To ostatnie oczko: wcześniej wypchaj figurkę, a na końcu przeprowadź obie końcówki przez kilka koralików, zawiąż i schowaj węzeł w koraliku.' : '');
+  }
+  const walk = st.around.slice(st.added.length);
+  const a = walk.length === 1
+    ? `wychodzi z koralika nr ${walk[0] + 1}, który już jest`
+    : `przejdź przez ${plural(walk.length, 'koralik', 'koraliki', 'koralików')}, które oczko dzieli z gotowymi — nr ${nr(walk)} (linia przerywana)`;
+  return `${head}Końcówka A: ${a}, potem nawlecz ${runs(st.added)} (linia ze strzałkami). Końcówka B: przełóż przez ostatni nowy koralik, nr ${cross + 1} (kółko), w przeciwną stronę i dociągnij obie.`;
 }
 
 // ---------------------------------------------------------------- 3D

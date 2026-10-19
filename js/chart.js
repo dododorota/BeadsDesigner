@@ -550,6 +550,13 @@ export class ChartEditor {
       };
       const accent = tok('--accent'), ink = tok('--ink'), halo = tok('--chart-bg');
       for (const path of layout.thread.faint) line(path, Math.max(1.5, S * 0.07), ink, 0.5);
+      // Przerywana: koraliki, które już są, a przez które końcówka przechodzi.
+      for (const path of layout.thread.dashed || []) {
+        g.save();
+        g.setLineDash([Math.max(4, S * 0.2), Math.max(3, S * 0.14)]);
+        line(path, Math.max(2, S * 0.09), accent, 0.9);
+        g.restore();
+      }
       for (const path of layout.thread.main) {
         line(path, Math.max(4, S * 0.2), halo, 0.7);
         line(path, Math.max(2, S * 0.1), accent, 1);

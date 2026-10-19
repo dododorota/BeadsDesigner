@@ -23,7 +23,10 @@ Aktualizujemy go przy każdym etapie pracy (checkpoint), najnowsze wpisy są na 
 - [x] Wężyk szydełkowy przeniesiony do silnika ściegów (commit Doroty `8f0624c`)
 - [x] Ścieżka nici na schematach ściegów i figurek (commit Doroty `2885006`)
 - [x] Ścieg RAW / na krzyż płaski (koraliki na przemian poziomo i pionowo)
-- [x] Schemat naszyjnika: odstępy między wierszami i cienka nitka łącząca wiersze — razem z RAW 64 testy; **zmiany tylko lokalnie, bez commita**
+- [x] Schemat naszyjnika: odstępy między wierszami i cienka nitka łącząca wiersze (commit Doroty `b223a4e`, razem z RAW)
+- [x] Podpowiedzi do nici w figurkach: ściągawka „Jak prowadzić nić na krzyż”, opis każdego oczka, przerywana linia przez koraliki,
+  które już są — 65 testów; **zmiany tylko lokalnie, bez commita**
+- [ ] Dorota zbiera bazę siatek figurek (zrzut schematu + zdjęcie gotowej figurki + liczba koralików) — każdą dodać jako nowy kształt
 
 **Do zrobienia — Dorota**
 - [x] Repo publiczne (2026-10-14)
@@ -40,7 +43,7 @@ Aktualizujemy go przy każdym etapie pracy (checkpoint), najnowsze wpisy są na 
 **Git:** Claude nie robi commitów, gałęzi ani `git push` — wszystko zostaje lokalnie, Dorota commituje sama.
 
 **Jak zacząć jutro:** przeczytać tę sekcję, sprawdzić `git status` / `git log` (gałąź `main` śledzi `origin/main`),
-uruchomić `npm test` (64 testy) i zapytać Dorotę o wyniki testu na iPadzie oraz wybór z listy wyżej.
+uruchomić `npm test` (65 testów) i zapytać Dorotę o wyniki testu na iPadzie oraz wybór z listy wyżej.
 
 <details>
 <summary>Rozważane drogi instalacji (archiwum decyzji)</summary>
@@ -117,7 +120,8 @@ perełki 4 mm w „ścianach”).
 | Wybór kulki na schemacie, nazwa, usuwanie (z parą i tym, co do niej doczepione); stuknięcie w kulkę w 3D przełącza schemat | ✅ |
 | Instrukcja: każda kulka osobno, potem „Zszyj oczko X z oczkiem Y”; oczka łączenia oznaczone ◆ na schemacie | ✅ |
 | „Pokaż w 3D do oczka N” — nauka kolejności pracy | ✅ |
-| Ścieżka nici dla wybranego oczka na schemacie: nowe koraliki na jedną końcówkę żyłki, koralik krzyżowania | ✅ |
+| Ścieżka nici dla wybranego oczka na schemacie: koraliki, które już są (przerywana), nowe koraliki na końcówkę A, koralik krzyżowania dla B | ✅ |
+| Opis słowami każdego oczka (która końcówka, przez które koraliki, co nawlec) i ściągawka „Jak prowadzić nić na krzyż” | ✅ |
 | Zawieszka na naszyjniku: figurka na krzyż albo figurka warstwami | ✅ |
 | Zmiana rozmiaru kulki przenosi kolory i dodatki według położenia na bryle | ✅ |
 
@@ -194,6 +198,8 @@ Wymagany iPadOS 16.4 lub nowszy (import map w Safari).
 - **Kolejność oczek** jest wyliczana automatycznie (pierścieniami od przodu) — może różnić się od schematu z internetu.
 - **Mieszane rozmiary** (np. większe oczka 8/0) rysują się we właściwym rozmiarze, ale bryła liczona jest dla najczęstszego koralika.
 - Ścieżka nici pokazuje jedno oczko naraz na schemacie płaskim; nie ma jej w podglądzie 3D ani dla dodatków.
+- Kolejność oczek liczy aplikacja, więc końcówki po jednym oczku nie zawsze są przy następnym — ściągawka mówi,
+  żeby wtedy przeprowadzić je przez sąsiednie koraliki; aplikacja nie rysuje tego przejścia.
 - Zużycie w trybie „Naszyjnik” liczy tylko naszyjnik — zawieszkę liczy się w jej trybie („Figurka”).
 
 ## Znane ograniczenia motywów
@@ -271,6 +277,14 @@ Wymagany iPadOS 16.4 lub nowszy (import map w Safari).
 ---
 
 ## Dziennik
+
+### 2026-10-19 — Podpowiedzi do nici w figurkach (lokalnie, bez commita)
+- Prośba Doroty: na siatkach figurek nie wiadomo, jak ma iść nitka.
+- `ballThreadTip` w `js/ball.js`: opis oczka słowami — końcówka A przez koraliki, które oczko dzieli z gotowymi (numery),
+  potem nowe koraliki z kolorami; końcówka B na krzyż przez ostatni nowy. Osobne teksty dla oczka 1, oczek bez nowych
+  koralików i ostatniego oczka (wypchanie, zawiązanie).
+- Schemat: przerywana linia przez koraliki, które już są; rozwijana ściągawka „Jak prowadzić nić na krzyż” w panelu.
+- Testy: 65 (1 nowy). Sprawdzone w Chrome: oczko 10 przykładowej żabki (opis, schemat, ściągawka).
 
 ### 2026-10-19 — Schemat naszyjnika czytelniejszy (lokalnie, bez commita)
 - Pytanie Doroty: czemu schemat naszyjnika ma „rzędy”, skoro to jeden sznurek. Schemat łamie nitkę co „W rzędzie schematu”

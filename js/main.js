@@ -9,10 +9,10 @@ import {
 import { ChartEditor } from './chart.js';
 import { Preview3D } from './preview3d.js';
 import { Library, openBackend, parseImport } from './storage.js';
-import { STITCHES, hasThread, rowsFromVisible, visibleRows } from './stitches.js';
+import { STITCHES, hasThread, plural, rowsFromVisible, visibleRows } from './stitches.js';
 import { MOTIFS, clearMotifs, fillMotifs, groupAt, insertMotif, removeMotifAt } from './motifs.js';
 import {
-  BALL_SHAPES, EXTRA_KINDS, STRETCH, addPart, ballShape, extraAt, extraMirrorIndex, extraSize, locate, partAt, partJoin, partName,
+  BALL_SHAPES, EXTRA_KINDS, STRETCH, addPart, ballShape, ballThreadTip, extraAt, extraMirrorIndex, extraSize, locate, partAt, partJoin, partName,
   removePart, setPartStretch, toggleExtra,
 } from './ball.js';
 
@@ -428,6 +428,7 @@ function renderBallControls() {
   $('ballMirror').checked = ball.mirror;
   $('ballThread').checked = ui.thread;
   $('ballThreadHint').hidden = !ui.thread;
+  renderThreadTip();
   $('partShape').value = ui.partShape;
   $('partAt').max = ballShape(b.shape).steps.length;
   $('partAtOf').textContent = pi < 0 ? 'tułowia' : 'tej kulki';
@@ -443,11 +444,22 @@ function renderBallControls() {
   setNumber('ballStep', ui.ballStep);
 }
 
+// Opis słowami bieżącego oczka (gdy ścieżka nici jest włączona).
+function renderThreadTip() {
+  const tip = $('ballThreadTip');
+  const part = partAt(project.ball, currentPart(project, ui));
+  tip.hidden = !(ui.thread && ui.ballStep > 0);
+  if (tip.hidden) return;
+  const runText = (r) => `${r.n}× ${project.palette[r.color]?.name ?? '?'}`;
+  tip.textContent = ballThreadTip(part, ui.ballStep - 1, runText, plural);
+}
+
 function setBallStep(v) {
   const steps = ballShape(partAt(project.ball, currentPart(project, ui)).shape).steps.length;
   ui.ballStep = Math.max(0, Math.min(steps, Math.round(Number(v) || 0)));
   setNumber('ballStep', ui.ballStep);
   schedulePreview();
+  renderThreadTip();
   if (ui.thread) {
     renderChart();
     const t = modeApi.ball.layout(project, ui).thread;

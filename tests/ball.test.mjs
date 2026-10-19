@@ -261,3 +261,26 @@ test('ścieżka nici w figurce: od ostatniego istniejącego koralika przez nowe,
   assert.equal(modeApi.ball.layout(p, { thread: true, ballStep: 0 }).thread, null);
   assert.equal(modeApi.ball.layout(p, { thread: true, ballStep: 8 }).thread.label, 'Oczko 8');
 });
+
+import { ballThreadTip } from '../js/ball.js';
+
+test('podpowiedź do oczka: końcówka A przez koraliki, które już są, B na krzyż w ostatnim nowym', () => {
+  const p = createBlankProject('ball');
+  const s = ballShape(p.ball.shape), lay = ballLayout(p.ball.shape);
+  const at = (id) => [lay.cells[id].x + 0.5, lay.cells[id].y + 0.5];
+  const runText = (r) => `${r.n}× kolor${r.color}`;
+  const pl = (n, a, b, c) => `${n} ${n === 1 ? a : n % 10 >= 2 && n % 10 <= 4 ? b : c}`;
+  assert.match(ballThreadTip(p.ball, 0, runText, pl), /^Oczko 1 z 42 \(5 koralików\)\. Nawlecz 5× kolor0 na środek żyłki/);
+  // Oczko z co najmniej dwoma koralikami, które już są.
+  const k = s.steps.findIndex((st) => st.added.length && st.existing.length >= 2);
+  const st = s.steps[k];
+  const walk = st.around.slice(st.added.length);
+  assert.deepEqual([...walk].sort((a, b) => a - b), [...st.existing].sort((a, b) => a - b), 'przerywana idzie przez istniejące');
+  const t = ballThread(p.ball.shape, k);
+  assert.deepEqual(t.dashed[0], walk.map(at));
+  assert.deepEqual(t.dashed[0].at(-1), t.main[0][0], 'przerywana przechodzi w linię ze strzałkami');
+  const tip = ballThreadTip(p.ball, k, runText, pl);
+  assert.ok(tip.includes(`nr ${walk.map((id) => id + 1).join(', ')}`));
+  assert.ok(tip.includes(`ostatni nowy koralik, nr ${st.added.at(-1) + 1}`));
+  assert.match(ballThreadTip(p.ball, s.steps.length - 1, runText, pl), /ostatnie oczko/);
+});
