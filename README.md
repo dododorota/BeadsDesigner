@@ -12,7 +12,7 @@ Postęp prac, plan i podjęte decyzje: **[docs/POSTEP.md](docs/POSTEP.md)**.
 | --- | --- | --- |
 | **Naszyjnik** | pojedynczy sznurek koralików, np. 300 szt. 11/0 ≈ 42 cm, z motywami: stokrotki (daisy chain), pętelki, frędzle | koraliki ułożone wierszami; motywy w obwódce; trójkąt pokazuje środek naszyjnika |
 | **Wężyk** | wężyk szydełkowy z koralikami (bead crochet), 3–16 na obwodzie | rozwinięty wężyk — każdy rząd przesunięty o pół koralika, dokładnie jak w spirali na prawdziwym wężyku |
-| **Ścieg** | peyote, brick, herringbone (też skręcony), square/krosno, ladder, CRAW i PRAW-3…6 — płasko albo w rurkę | koraliki ułożone i obrócone jak w danym ściegu (przesunięte kolumny, jodełka, klatki); instrukcja rząd po rzędzie |
+| **Ścieg** | peyote, brick, herringbone (też skręcony), square/krosno, ladder, RAW / na krzyż płaski, CRAW i PRAW-3…6 — płasko albo w rurkę | koraliki ułożone i obrócone jak w danym ściegu (przesunięte kolumny, jodełka, klatki); instrukcja rząd po rzędzie |
 | **Figurka** | figurka w technice japońskiej (na krzyż): kulka z oczek, 30–480 koralików; do tułowia doczepiasz kolejne kulki (głowa, łapki, ogonek), a do koralików — pętelki i paski z oczek (uszy, płetwy) | schemat jak z Pinteresta: oczko 1 w środku, pierścienie oczek, tył jako obwód; maluj też stuknięciem w podgląd 3D |
 | **Warstwy** | starszy sposób na figurkę: bryła budowana warstwami | jeden poziomy plaster naraz, blade kropki to warstwa poniżej |
 

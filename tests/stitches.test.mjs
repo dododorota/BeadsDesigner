@@ -180,3 +180,53 @@ test('ścieżka nici peyote: na zmianę nowy koralik i wystający koralik rzędu
   assert.equal(steps[1].label, 'Rz. 3 ←');
   assert.deepEqual(steps[1].path, [at(0, 3), at(1, 2), at(0, 1), at(1, 0)]);
 });
+
+import { rawSteps, rawBead } from '../js/stitches.js';
+
+test('RAW płaski: koraliki na przemian poziomo i pionowo, każdy nawleczony raz', () => {
+  const st = fixStitch({ kind: 'raw', form: 'tube', width: 5, rows: 3 });
+  assert.equal(st.form, 'flat', 'RAW tylko płasko');
+  assert.equal(stitchCount(st), 5 * 4 + 6 * 3);
+  const l = stitchLayout(st, BEAD);
+  assert.equal(l.cells.filter((c) => c.a === 0).length, 20, 'poziome: góra i dół oczek');
+  assert.equal(l.cells.filter((c) => c.a === Math.PI / 2).length, 18, 'pionowe: boki');
+  const steps = rawSteps(st);
+  assert.equal(steps.length, 15);
+  const added = steps.flatMap((s) => s.added).sort((a, b) => a - b);
+  assert.deepEqual(added, Array.from({ length: stitchCount(st) }, (_, i) => i));
+  assert.deepEqual(steps.map((s) => s.added.length).slice(0, 7), [4, 3, 3, 3, 3, 3, 2], 'pierwsze 4, rząd 1 po 3, nowy rząd 3, potem 2');
+  for (const s of steps) assert.equal(new Set(s.around).size, 4, 'oczko ma 4 różne koraliki');
+  // Rząd 2 idzie w lewo — zaczyna od prawego oczka.
+  assert.equal(steps[5].col, 4);
+  assert.equal(steps[5].dir, '←');
+});
+
+test('RAW płaski: lustro, sąsiedzi, powielanie i przenoszenie wzoru', () => {
+  const st = fixStitch({ kind: 'raw', width: 4, rows: 3, mirror: true });
+  const n = stitchCount(st);
+  for (let id = 0; id < n; id++) {
+    const m = stitchMirror(st, id);
+    assert.equal(stitchMirror(st, m), id);
+    assert.equal(rawBead(st, m).part, rawBead(st, id).part);
+  }
+  const l = stitchLayout(st, BEAD);
+  // Poziomy koralik w środku robótki styka się z 4 pionowymi (rogi dwóch oczek).
+  const mid = l.cells.find((c) => c.part === 'h' && c.level === 2 && c.col === 1);
+  assert.deepEqual(stitchNeighbors(l, mid.id).map((k) => l.cells[k].part), ['v', 'v', 'v', 'v']);
+  // Powielenie pierwszego rzędu oczek nie rusza dolnych koralików.
+  const beads = Array.from({ length: n }, (_, i) => i);
+  repeatStitchRows(st, beads, 1);
+  assert.deepEqual(beads.slice(0, 4), [0, 1, 2, 3]);
+  assert.equal(beads[4 + 9], beads[4]);
+  // Większa robótka RAW powtarza wzór; z peyote obrazek przenosi się według miejsca.
+  const bigger = fixStitch({ kind: 'raw', width: 6, rows: 5 });
+  const out = remapBeads(st, beads, bigger);
+  assert.equal(out.length, stitchCount(bigger));
+  assert.equal(out[0], beads[0]);
+  const pey = fixStitch({ kind: 'peyote', width: 8, rows: 6 });
+  const half = Array.from({ length: stitchCount(pey) }, (_, i) => (i % 8 < 4 ? 1 : 2));
+  const raw = remapBeads(pey, half, fixStitch({ kind: 'raw', width: 8, rows: 6 }));
+  const lr = stitchLayout(fixStitch({ kind: 'raw', width: 8, rows: 6 }), BEAD);
+  const left = lr.cells.filter((c) => c.x + 0.5 < lr.width * 0.4).map((c) => raw[c.id]);
+  assert.ok(left.every((c) => c === 1), 'lewa połowa obrazka zostaje po lewej');
+});

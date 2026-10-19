@@ -1,5 +1,5 @@
-// Silnik ściegów: peyote, brick, herringbone, square/krosno, ladder, PRAW/CRAW
-// i wężyk szydełkowy (bead crochet), płasko albo w rurkę.
+// Silnik ściegów: peyote, brick, herringbone, square/krosno, ladder, RAW płaski,
+// PRAW/CRAW i wężyk szydełkowy (bead crochet), płasko albo w rurkę.
 //
 // Każdy ścieg to przepis na siatkę koralików. Dla każdego koralika podajemy:
 //   x, y   — miejsce na schemacie (w jednostkach koralika, y rośnie w dół),
@@ -34,6 +34,11 @@ export const STITCHES = {
     hint: 'Drabinka: koraliki stoją pionowo obok siebie. Kilka rzędów to szczeble z kilku koralików jeden nad drugim.',
     widthLabel: 'Szczebli',
   },
+  raw: {
+    name: 'RAW / na krzyż (płaski)',
+    hint: 'Koraliki na przemian poziomo i pionowo: każde oczko to kwadrat z 4 koralików, a sąsiednie oczka dzielą koraliki. Tak samo wygląda płaska robótka na krzyż (technika japońska).',
+    widthLabel: 'Oczek w rzędzie',
+  },
   praw: {
     name: 'CRAW / PRAW',
     hint: 'Sznur z „klatek”: pierścień koralików (podłoga), pionowe ściany i kolejny pierścień. 4 boki to CRAW.',
@@ -63,6 +68,7 @@ const beadsN = (n) => plural(n, 'koralik', 'koraliki', 'koralików');
 // Nazwa ściegu do instrukcji i podpowiedzi.
 export function stitchTitle(st) {
   if (st.kind === 'praw') return st.sides === 4 ? 'CRAW' : `PRAW-${st.sides}`;
+  if (st.kind === 'raw') return 'RAW / na krzyż';
   return STITCHES[st.kind].name;
 }
 
@@ -78,6 +84,7 @@ export function fixStitch(st) {
   if (!STITCHES[s.kind]) s.kind = 'peyote';
   if (s.form !== 'tube') s.form = 'flat';
   if (s.kind === 'praw' || s.kind === 'crochet') s.form = 'tube';
+  if (s.kind === 'raw') s.form = 'flat';
   s.width = clamp(s.width, s.kind === 'crochet' ? STITCH_LIMITS.crochetWidth : STITCH_LIMITS.width);
   if (s.kind === 'herringbone' && s.width % 2) s.width += 1;
   s.rows = clamp(s.rows, STITCH_LIMITS.rows);
@@ -89,9 +96,13 @@ export function fixStitch(st) {
 
 // Ile koralików ma robótka i ile ich jest w jednym rzędzie (do przenoszenia wzoru).
 export function stitchCount(st) {
-  return st.kind === 'praw' ? st.sides * (2 * st.rows + 1) : st.width * st.rows;
+  if (st.kind === 'praw') return st.sides * (2 * st.rows + 1);
+  if (st.kind === 'raw') return st.width * (st.rows + 1) + (st.width + 1) * st.rows;
+  return st.width * st.rows;
 }
-const rowSize = (st) => (st.kind === 'praw' ? 2 * st.sides : st.width);
+// Rząd do powielania; pierwsza podłoga PRAW i dolne koraliki RAW nie należą do żadnego rzędu.
+const rowSize = (st) => (st.kind === 'praw' ? 2 * st.sides : st.kind === 'raw' ? 2 * st.width + 1 : st.width);
+const rowStart = (st) => (st.kind === 'praw' ? st.sides : st.kind === 'raw' ? st.width : 0);
 
 // ---------------------------------------------------------------- układ
 
@@ -185,13 +196,89 @@ function crochetLayout(st, bead) {
   return { cells, width: P, height: R, circ: P * step, period: P, rowLabels, colLabels: [], neighbors };
 }
 
+// RAW płaski: siatka kwadratowych oczek. Koraliki leżą na bokach oczek — poziome na
+// górze i dole, pionowe po bokach — a sąsiednie oczka dzielą koraliki. Numerujemy
+// poziomami od dołu: poziom 2r to poziome koraliki pod rzędem r (W sztuk), poziom
+// 2r+1 to pionowe koraliki rzędu r (W+1 sztuk); ostatni poziom to góra robótki.
+const RAW_PITCH = 1.5; // odstęp oczek na schemacie (w koralikach), żeby koraliki się nie nakładały
+
+export function rawBead(st, id) {
+  const W = st.width;
+  let level = 0, rest = id;
+  for (;;) {
+    const n = level % 2 ? W + 1 : W;
+    if (rest < n) return { level, col: rest, part: level % 2 ? 'v' : 'h' };
+    rest -= n;
+    level++;
+  }
+}
+export const rawId = (st, level, col) => {
+  const W = st.width, k = level >> 1;
+  return k * (2 * W + 1) + (level % 2 ? W : 0) + col;
+};
+
+function rawLayout(st, bead) {
+  const W = st.width, R = st.rows, P = RAW_PITCH;
+  const mm = bead.h + bead.d * 0.55; // bok oczka w mm: długość koralika i trochę na nitkę
+  const cells = [];
+  const n = stitchCount(st);
+  for (let id = 0; id < n; id++) {
+    const { level, col, part } = rawBead(st, id);
+    const cx = 0.5 + col * P + (part === 'h' ? P / 2 : 0);
+    const cy = 0.5 + (R - level / 2) * P;
+    const row = part === 'h' ? level / 2 : (level - 1) / 2;
+    cells.push({
+      id, x: cx - 0.5, y: cy - 0.5, a: part === 'h' ? 0 : Math.PI / 2,
+      u: ((cx - 0.5) / P) * mm, v: ((R * P + 0.5 - cy) / P) * mm, row, col, part, level,
+    });
+  }
+  const rowLabels = Array.from({ length: R }, (_, r) => ({ y: (R - r - 0.5) * P, text: String(r + 1) }));
+  const colLabels = Array.from({ length: W }, (_, c) => ({ x: c * P + P / 2, text: String(c + 1) }));
+  return { cells, width: W * P + 1, height: R * P + 1, circ: 0, period: W, rowLabels, colLabels };
+}
+
+// Kolejność pracy RAW: rzędy oczek od dołu, na zmianę w prawo i w lewo. W każdym
+// oczku nawlekasz tylko nowe koraliki — w pierwszym 4, potem 3 albo 2, bo resztę
+// oczko dzieli z sąsiadami. `around`: wszystkie 4 koraliki po kolei, od tego, z którego wychodzi nić.
+const RAW_ROLE = { bottom: 'dół', top: 'góra', left: 'lewy bok', right: 'prawy bok' };
+export function rawSteps(st) {
+  const W = st.width, R = st.rows;
+  const steps = [];
+  for (let r = 0; r < R; r++) {
+    const dir = r % 2 ? '←' : '→';
+    const order = [...Array(W).keys()];
+    if (dir === '←') order.reverse();
+    order.forEach((c, i) => {
+      const id = {
+        bottom: rawId(st, 2 * r, c), top: rawId(st, 2 * r + 2, c),
+        left: rawId(st, 2 * r + 1, c), right: rawId(st, 2 * r + 1, c + 1),
+      };
+      // Bok wspólny z poprzednim oczkiem w rzędzie: z lewej, gdy idziesz w prawo.
+      const back = dir === '→' ? 'left' : 'right', ahead = dir === '→' ? 'right' : 'left';
+      let roles;
+      if (r === 0 && i === 0) roles = ['left', 'bottom', 'right', 'top'];
+      else if (r === 0) roles = ['bottom', 'right', 'top'];
+      else if (i === 0) roles = [ahead === 'right' ? 'left' : 'right', 'top', ahead === 'right' ? 'right' : 'left'];
+      else roles = ['top', ahead];
+      // Dookoła oczka zgodnie z kolejnością nawlekania, zaczynając od wspólnego koralika.
+      const cycle = r === 0 && i === 0 ? ['left', 'bottom', 'right', 'top']
+        : r === 0 ? ['left', 'bottom', 'right', 'top']
+          : i === 0 ? ['bottom', ...roles]
+            : [back, 'top', ahead, 'bottom'];
+      steps.push({ row: r, col: c, dir, first: i === 0, roles, added: roles.map((k) => id[k]), around: cycle.map((k) => id[k]) });
+    });
+  }
+  return steps;
+}
+
 // Układ zależy tylko od ustawień ściegu i wymiarów koralika — trzymamy kilka ostatnich.
 const cache = new Map();
 export function stitchLayout(st, bead) {
   const key = `${st.kind}|${st.form}|${st.width}|${st.rows}|${st.sides}|${st.twist}|${bead.d}|${bead.h}`;
   let lay = cache.get(key);
   if (lay) return lay;
-  lay = st.kind === 'praw' ? prawLayout(st, bead) : st.kind === 'crochet' ? crochetLayout(st, bead) : gridLayout(st, bead);
+  lay = st.kind === 'praw' ? prawLayout(st, bead) : st.kind === 'crochet' ? crochetLayout(st, bead)
+    : st.kind === 'raw' ? rawLayout(st, bead) : gridLayout(st, bead);
   lay.form = st.form;
   lay.sizeMM = {
     w: st.form === 'tube' ? lay.circ / Math.PI : Math.max(...lay.cells.map((c) => c.u)) + bead.d,
@@ -240,6 +327,10 @@ export function stitchNeighbors(lay, id) {
 // Odbicie lewo–prawo w obrębie tego samego rzędu (tylko robótki płaskie).
 export function stitchMirror(st, id) {
   if (!st.mirror || st.form === 'tube' || st.kind === 'praw') return null;
+  if (st.kind === 'raw') {
+    const { level, col, part } = rawBead(st, id);
+    return rawId(st, level, (part === 'h' ? st.width - 1 : st.width) - col);
+  }
   const W = st.width, r = Math.floor(id / W), c = id % W;
   return r * W + (W - 1 - c);
 }
@@ -248,6 +339,30 @@ export function stitchMirror(st, id) {
 // rzędzie i kolumnie, a nowe miejsca dostają wzór powtórzony z istniejących.
 export function remapBeads(oldSt, oldBeads, st) {
   const n = stitchCount(st);
+  if (oldSt.kind === 'raw' && st.kind === 'raw') {
+    // RAW → RAW: ten sam poziom i kolumna; nowe rzędy i kolumny powtarzają wzór.
+    const top = 2 * oldSt.rows;
+    return Array.from({ length: n }, (_, id) => {
+      const { level, col, part } = rawBead(st, id);
+      const l = level <= top ? level : ((level - 1) % top) + 1;
+      const w = part === 'h' ? oldSt.width : oldSt.width + 1;
+      return oldBeads[rawId(oldSt, l, col < w ? col : col % w)] ?? 0;
+    });
+  }
+  if (oldSt.kind === 'raw' || st.kind === 'raw') {
+    // Między RAW a innym ściegiem obrazek przenosimy według miejsca na schemacie.
+    const unit = { d: 2, h: 1.5 };
+    const a = stitchLayout(oldSt, unit), b = stitchLayout(st, unit);
+    return b.cells.map((c) => {
+      const fx = (c.x + 0.5) / b.width, fy = (c.y + 0.5) / b.height;
+      let best = 0, bd = Infinity;
+      for (const o of a.cells) {
+        const d = ((o.x + 0.5) / a.width - fx) ** 2 + ((o.y + 0.5) / a.height - fy) ** 2;
+        if (d < bd) { bd = d; best = o.id; }
+      }
+      return oldBeads[best] ?? 0;
+    });
+  }
   if (oldSt.kind === 'praw' || st.kind === 'praw') {
     return Array.from({ length: n }, (_, i) => oldBeads[i % oldBeads.length] ?? 0);
   }
@@ -263,7 +378,7 @@ export function remapBeads(oldSt, oldBeads, st) {
 // Powiela pierwsze `len` rzędów (w PRAW: klatek) na całą robótkę.
 export function repeatStitchRows(st, beads, len) {
   const size = rowSize(st);
-  const first = st.kind === 'praw' ? st.sides : 0; // pierwsza podłoga PRAW zostaje
+  const first = rowStart(st); // pierwsza podłoga PRAW i dół RAW zostają
   len = Math.max(1, Math.min(st.rows, len | 0)) * size;
   for (let i = first + len; i < beads.length; i++) beads[i] = beads[first + ((i - first) % len)];
 }
@@ -296,6 +411,12 @@ export function stitchThread(st, lay) {
     return path;
   };
 
+  if (st.kind === 'raw') {
+    // Każde oczko: od wspólnego koralika przez nowe, dookoła oczka.
+    const at = (id) => { const q = lay.cells[id]; return [q.x + 0.5, q.y + 0.5]; };
+    rawSteps(st).forEach((s, k) => steps.push({ label: `Oczko ${k + 1}`, path: [...s.around, s.around[0]].map(at) }));
+    return steps;
+  }
   if (st.kind === 'peyote') {
     // Rzędy 1–2 nawlekasz naraz; potem nić przechodzi na zmianę przez nowy koralik
     // i przez wystający koralik rzędu poniżej. W rurce na końcu okrążenia — step up.
@@ -387,7 +508,21 @@ export function stitchInstructions(st, beads, runText) {
   const word = tube ? 'Okr.' : 'Rz.';
   const name = `${stitchTitle(st)} ${tube ? 'w rurkę' : 'płaski'}`;
 
-  if (st.kind === 'crochet') {
+  if (st.kind === 'raw') {
+    lines.push({
+      head: name,
+      note: 'Każde oczko to kwadrat z 4 koralików: dwa leżą poziomo (dół, góra), dwa stoją pionowo (boki); sąsiednie oczka dzielą koraliki. Rzędy oczek idą od dołu schematu, na zmianę w prawo i w lewo. Nawlekasz tylko nowe koraliki i przekładasz nić dookoła oczka — jedną igłą albo na krzyż dwiema końcówkami żyłki (technika japońska).',
+    });
+    rawSteps(st).forEach((s, k) => {
+      if (s.first) lines.push({ sub: `Rząd ${s.row + 1} ${s.dir}` });
+      const rs = runs(s.added.map((id) => beads[id]));
+      lines.push({
+        num: `Oczko ${k + 1}`,
+        text: `${rs.map(runText).join(', ')} — ${s.roles.map((x) => RAW_ROLE[x]).join(', ')}${k === 0 ? ' — zamknij w kółko' : ''}`,
+        color: rs.length === 1 ? rs[0].color : undefined,
+      });
+    });
+  } else if (st.kind === 'crochet') {
     lines.push({
       head: 'Kolejność nawlekania',
       note: `Nawlekaj od góry listy. Pierwszy nawleczony koralik trafi na koniec wężyka, więc lista idzie od ostatniego rzędu do pierwszego. Na obwodzie ${W} koralików.`,

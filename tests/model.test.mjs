@@ -129,3 +129,15 @@ test('siatka wężyka opiera się na najczęstszym koraliku', () => {
   p.palette[0].bead = 'delica-11';
   assert.equal(baseBead(p).label, 'Delica 11/0 (DB)');
 });
+
+test('schemat naszyjnika: odstęp między wierszami i nitka łącząca wiersze', () => {
+  const p = createBlankProject('strand');
+  const lay = modeApi.strand.layout(p);
+  const wrap = p.strand.wrap;
+  assert.ok(lay.cells[wrap].y - lay.cells[0].y > 1.2, 'wiersze rozsunięte');
+  assert.equal(lay.links.length, Math.ceil(p.strand.count / wrap) - 1);
+  const [first] = lay.links;
+  assert.deepEqual(first[0], [lay.cells[wrap - 1].x + 0.5, lay.cells[wrap - 1].y + 0.5], 'z ostatniego koralika wiersza');
+  assert.deepEqual(first.at(-1), [lay.cells[wrap].x + 0.5, lay.cells[wrap].y + 0.5], 'do pierwszego koralika następnego');
+  assert.ok(lay.cells.every((c) => c.y + 1 <= lay.height + 1e-9));
+});

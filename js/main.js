@@ -346,6 +346,13 @@ function renderHover() {
       const unit = Math.floor(c.row / 2) + (c.part === 'wall' ? 1 : 0);
       info.textContent = `${c.part === 'wall' ? `Klatka ${unit}, ściana` : unit === 0 ? 'Pierwsza podłoga' : `Klatka ${unit}, sufit`} ${c.col + 1} · ${name}`;
     } else {
+      if (st.kind === 'raw') {
+        const where = c.part === 'h'
+          ? (c.level === 0 ? `Rząd 1, oczko ${c.col + 1}, dół` : `Rząd ${c.row}, oczko ${c.col + 1}, góra`)
+          : `Rząd ${c.row + 1}, ${c.col === 0 ? 'lewy brzeg' : c.col === st.width ? 'prawy brzeg' : `bok między oczkami ${c.col} i ${c.col + 1}`}`;
+        info.textContent = `${where} · ${name}`;
+        return;
+      }
       const row = st.kind === 'peyote' ? 2 * c.row + 1 + (c.col % 2) : c.row + 1;
       info.textContent = `Rząd ${row}, ${st.kind === 'ladder' ? 'szczebel' : 'kolumna'} ${c.col + 1} · ${name}`;
     }
@@ -471,14 +478,14 @@ function renderStitchControls() {
   const praw = st.kind === 'praw', tube = st.form === 'tube';
   $('stitchKind').value = st.kind;
   $('stitchForm').value = st.form;
-  $('stitchForm').disabled = praw;
+  $('stitchForm').disabled = praw || st.kind === 'raw';
   $('stitchWidthField').hidden = praw;
   $('stitchSidesField').hidden = !praw;
   $('stitchSides').value = String(st.sides);
   $('stitchWidthLabel').textContent = tube ? 'Na obwodzie' : STITCHES[st.kind].widthLabel;
   $('stitchWidth').step = st.kind === 'herringbone' ? 2 : 1;
   setNumber('stitchWidth', st.width);
-  $('stitchRowsLabel').textContent = praw ? 'Klatek' : 'Rzędów';
+  $('stitchRowsLabel').textContent = praw ? 'Klatek' : st.kind === 'raw' ? 'Rzędów oczek' : 'Rzędów';
   setNumber('stitchRows', visibleRows(st));
   $('stitchTwistField').hidden = !(st.kind === 'herringbone' && tube);
   $('stitchTwist').checked = st.twist;

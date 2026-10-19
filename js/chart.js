@@ -408,6 +408,24 @@ export class ChartEditor {
       g.restore();
     }
 
+    // Naszyjnik: cienka nitka łącząca koniec wiersza z początkiem następnego (pod koralikami).
+    if (layout.links?.length) {
+      g.save();
+      g.strokeStyle = tok('--ink-soft');
+      g.globalAlpha = 0.55;
+      g.lineWidth = Math.max(1, S * 0.05);
+      g.lineJoin = 'round';
+      g.beginPath();
+      for (const path of layout.links) {
+        path.forEach(([x, y], i) => {
+          const px = MARGIN.left + x * S, py = MARGIN.top + y * S;
+          if (i) g.lineTo(px, py); else g.moveTo(px, py);
+        });
+      }
+      g.stroke();
+      g.restore();
+    }
+
     const empty = tok('--empty-dot');
     for (const c of layout.cells) {
       const col = colorOf(c.id);

@@ -21,7 +21,9 @@ Aktualizujemy go przy każdym etapie pracy (checkpoint), najnowsze wpisy są na 
 - [x] Etap 5 — figurki z kilku kulek (głowa, łapki, ogonek) i paski z oczek (uszy, płetwy)
 - [x] Dokumentacja (ten plik + README), 56 testów, wypchnięte na `main` (`bf9224f`)
 - [x] Wężyk szydełkowy przeniesiony do silnika ściegów (commit Doroty `8f0624c`)
-- [x] Ścieżka nici na schematach ściegów i figurek — 61 testów; **zmiany tylko lokalnie, bez commita** (commituje i wypycha Dorota)
+- [x] Ścieżka nici na schematach ściegów i figurek (commit Doroty `2885006`)
+- [x] Ścieg RAW / na krzyż płaski (koraliki na przemian poziomo i pionowo)
+- [x] Schemat naszyjnika: odstępy między wierszami i cienka nitka łącząca wiersze — razem z RAW 64 testy; **zmiany tylko lokalnie, bez commita**
 
 **Do zrobienia — Dorota**
 - [x] Repo publiczne (2026-10-14)
@@ -38,7 +40,7 @@ Aktualizujemy go przy każdym etapie pracy (checkpoint), najnowsze wpisy są na 
 **Git:** Claude nie robi commitów, gałęzi ani `git push` — wszystko zostaje lokalnie, Dorota commituje sama.
 
 **Jak zacząć jutro:** przeczytać tę sekcję, sprawdzić `git status` / `git log` (gałąź `main` śledzi `origin/main`),
-uruchomić `npm test` (61 testów) i zapytać Dorotę o wyniki testu na iPadzie oraz wybór z listy wyżej.
+uruchomić `npm test` (64 testy) i zapytać Dorotę o wyniki testu na iPadzie oraz wybór z listy wyżej.
 
 <details>
 <summary>Rozważane drogi instalacji (archiwum decyzji)</summary>
@@ -84,15 +86,17 @@ perełki 4 mm w „ścianach”).
 | Funkcja | Stan |
 | --- | --- |
 | Naszyjnik — pojedynczy sznurek, symetria od środka, powielanie wzoru, zawieszka-figurka | ✅ |
+| Schemat naszyjnika: wiersze z odstępami, cienka nitka z końca wiersza do początku następnego (to jedna nitka, nie rzędy) | ✅ |
 | Wężyk szydełkowy (bead crochet), 3–16 na obwodzie, spirala z przesunięciem o pół koralika | ✅ (od 2026-10-17 liczony przez silnik ściegów) |
 | Figurka warstwami (woksele) — tryb „Warstwy”, zostaje dla starszych projektów | ✅ |
 | Ścieg: peyote, brick, herringbone, square/krosno, ladder — płasko albo w rurkę | ✅ |
+| Ścieg: RAW / na krzyż płaski — oczka z 4 koralików, poziome i pionowe na przemian; instrukcja i ścieżka nici oczko po oczku | ✅ |
 | Ścieg: herringbone skręcony (spirala) w rurce | ✅ |
 | Ścieg: CRAW i PRAW-3, -5, -6 (sznur z „klatek”) | ✅ |
 | Schemat ściegu: koraliki obrócone jak otwór (poziomo, pionowo, jodełka), rzędy numerowane jak w danym ściegu | ✅ |
 | Podgląd 3D ściegu: płaska robótka albo rurka; PRAW na prawdziwym wielokącie | ✅ |
 | Instrukcja ściegu rząd po rzędzie (kierunek pracy, start ladder / rzędy 1–2 peyote, klatki PRAW) | ✅ |
-| Ścieżka nici na schemacie rząd po rzędzie (◀ ▶): peyote, brick, herringbone, square, ladder — płasko i w rurkę | ✅ (bez PRAW/CRAW i wężyka) |
+| Ścieżka nici na schemacie rząd po rzędzie (◀ ▶): peyote, brick, herringbone, square, ladder — płasko i w rurkę; RAW oczko po oczku | ✅ (bez PRAW/CRAW i wężyka) |
 | Odbicie lewo–prawo, powielanie rzędów/klatek, wypełnianie z zawijaniem w rurce | ✅ |
 | Motywy na naszyjniku: stokrotka (4–10 płatków + środek), pętelka (3–40), frędzel (2–40, z koralikiem zwrotnym) | ✅ |
 | Narzędzie „Motyw” (M): stuknięcie w koralik wstawia za nim motyw, stuknięcie w motyw go usuwa | ✅ |
@@ -206,6 +210,8 @@ Wymagany iPadOS 16.4 lub nowszy (import map w Safari).
 - **Odbicie w peyote przy parzystej liczbie kolumn** jest przybliżone: lustrzana kolumna ma drugą parzystość, więc jest pół koralika wyżej/niżej.
 - **Mieszane rozmiary koralików** w ściegu rysują się we właściwym kształcie i rozmiarze, ale siatka liczona jest dla najczęstszego koralika.
 - **Herringbone:** pochylenie koralików i skręt (pół koralika na rząd) są stałe, przybliżone.
+- **RAW płaski** jest tylko płaski (rurka RAW to CRAW/PRAW). Kolejność oczek jest stała: rzędy od dołu na zmianę w prawo
+  i w lewo; ścieżka nici rysuje kółko przez 4 koraliki oczka, bez kierunku obiegu (zgodnie/przeciwnie do zegara na zmianę).
 - **Ścieżka nici** jest uproszczona: linia przez środki koralików (w ladder i brick przez ich końce), bez pętli
   i zawiązywania nowej nici. Square rysujemy jak square stitch — na krośnie nić idzie inaczej (przez cały rząd tam i z powrotem).
   PRAW/CRAW (nić w głąb klatek) i wężyk (szydełko) nie mają ścieżki.
@@ -236,6 +242,10 @@ Wymagany iPadOS 16.4 lub nowszy (import map w Safari).
   (`around`, `rows`, `beads`) — format pliku bez zmian. Wężyka nie ma na liście ściegów w trybie „Ścieg”, żeby nie było dwóch
   miejsc na to samo. Sąsiedzi wężyka idą wzdłuż spirali (±1, ±C, ±(C+1)), a nie po odległości na schemacie — na szwie spirali
   kolejne koraliki leżą na schemacie na ukos.
+- **RAW płaski** (2026-10-19): koraliki numerowane poziomami od dołu (poziom 2r — poziome pod rzędem r, W sztuk;
+  2r+1 — pionowe rzędu r, W+1 sztuk), więc powielanie rzędów i zmiana rozmiaru działają jak w innych ściegach.
+  Kolejność pracy (oczko po oczku) liczy `rawSteps`. Przejście między RAW a innym ściegiem przenosi obrazek
+  według miejsca na schemacie (najbliższy koralik), a nie według numerów.
 - **Ścieżka nici = kroki instrukcji** (2026-10-17): `stitchThread` w `js/stitches.js` i `ballThread` w `js/ball.js`
   zwracają kroki o tych samych nazwach co linie instrukcji, z punktami w jednostkach schematu; schemat rysuje bieżący
   krok i blado poprzedni. W rurce linia przerywa się tam, gdzie schemat się zawija.
@@ -261,6 +271,19 @@ Wymagany iPadOS 16.4 lub nowszy (import map w Safari).
 ---
 
 ## Dziennik
+
+### 2026-10-19 — Schemat naszyjnika czytelniejszy (lokalnie, bez commita)
+- Pytanie Doroty: czemu schemat naszyjnika ma „rzędy”, skoro to jeden sznurek. Schemat łamie nitkę co „W rzędzie schematu”
+  koralików jak tekst; numery po lewej to pierwszy koralik wiersza.
+- Wiersze rozsunięte (`STRAND_ROW_GAP`), a cienka linia prowadzi nitkę z końca wiersza szczeliną do początku następnego.
+- Testy: 64 (1 nowy). Sprawdzone w Chrome na przykładowym naszyjniku.
+
+### 2026-10-19 — Ścieg RAW / na krzyż płaski (lokalnie, bez commita)
+- Prośba Doroty: układ z koralikami na przemian poziomo i pionowo (broszka-żabka z Pinteresta).
+- Nowy ścieg `raw` w `js/stitches.js`: schemat z odstępami między oczkami, 3D płaskie, instrukcja oczko po oczku
+  (4 → 3 → 2 nowe koraliki, z nazwami: dół, góra, lewy/prawy bok), ścieżka nici dookoła oczka, lustro lewo–prawo,
+  powielanie rzędów, opis koralika pod kursorem.
+- Testy: 63 (2 nowe). Sprawdzone w Chrome: serce z przykładu peyote przechodzi na RAW we właściwe miejsce, 3D, ścieżka nici.
 
 ### 2026-10-17 — Ścieżka nici na schematach (lokalnie, bez commita)
 - Ściegi: „Ścieżka nici → Pokaż na schemacie” i ◀ ▶ rząd po rzędzie; schemat przewija się do bieżącego rzędu.

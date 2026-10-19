@@ -250,15 +250,20 @@ export function resizeFigure(p, w, d, h) {
 // Każdy tryb opisuje, jak koraliki leżą na schemacie (x, y w jednostkach koralika),
 // kto jest czyim sąsiadem (do wypełniania) i jak wygląda odbicie lustrzane.
 
+// Naszyjnik to jedna nitka pocięta na wiersze schematu — odstęp między wierszami
+// pokazuje, że to kolejne kawałki tego samego sznurka, a nie rzędy ściegu.
+export const STRAND_ROW_GAP = 0.45;
+
 const strandMode = {
   get: (p, id) => p.strand.beads[id],
   set: (p, id, c) => { p.strand.beads[id] = c; },
   layout(p) {
     const { count, wrap } = p.strand;
+    const pitch = 1 + STRAND_ROW_GAP;
     const cells = [];
-    for (let i = 0; i < count; i++) cells.push({ id: i, x: i % wrap, y: Math.floor(i / wrap) });
+    for (let i = 0; i < count; i++) cells.push({ id: i, x: i % wrap, y: Math.floor(i / wrap) * pitch });
     const rows = Math.ceil(count / wrap);
-    const rowLabels = Array.from({ length: rows }, (_, y) => ({ y, text: String(y * wrap + 1) }));
+    const rowLabels = Array.from({ length: rows }, (_, y) => ({ y: y * pitch, text: String(y * wrap + 1) }));
     const colLabels = Array.from({ length: Math.min(wrap, count) }, (_, x) => ({ x, text: String(x + 1) }));
     const center = count % 2 ? [(count - 1) / 2] : [count / 2 - 1, count / 2];
     // Motywy zaznaczamy obwódką; motyw dzielony między wiersze schematu ma kilka kawałków.
@@ -267,11 +272,17 @@ const strandMode = {
       for (let i = g.start; i < g.start + g.n;) {
         const y = Math.floor(i / wrap), x0 = i % wrap;
         const x1 = Math.min(wrap - 1, x0 + (g.start + g.n - 1 - i));
-        bands.push({ y, x0, x1, kind: g.kind, first: i === g.start });
+        bands.push({ y: y * pitch, x0, x1, kind: g.kind, first: i === g.start });
         i += x1 - x0 + 1;
       }
     }
-    return { cells, width: wrap, height: rows, rowLabels, colLabels, marks: center, bands, shape: 'side' };
+    // Nitka między wierszami: z końca wiersza w prawo, szczeliną w lewo, do początku następnego.
+    const links = [];
+    for (let r = 0; r < rows - 1; r++) {
+      const cy = r * pitch + 0.5, ny = cy + pitch, gy = r * pitch + 1 + STRAND_ROW_GAP / 2;
+      links.push([[wrap - 0.5, cy], [wrap + 0.2, cy], [wrap + 0.2, gy], [-0.2, gy], [-0.2, ny], [0.5, ny]]);
+    }
+    return { cells, width: wrap, height: rows * pitch - STRAND_ROW_GAP, rowLabels, colLabels, marks: center, bands, links, shape: 'side' };
   },
   neighbors: (p, id) => [id - 1, id + 1].filter((n) => n >= 0 && n < p.strand.count),
   mirror: (p, id) => (p.strand.symmetric ? mirrorBead(p.strand, id) : null),
