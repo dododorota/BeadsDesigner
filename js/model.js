@@ -194,7 +194,8 @@ export function normalizeProject(raw) {
   // Wężyk ma własny tryb — w danych ściegu go nie trzymamy.
   const st = fixStitch({ ...base.stitch, ...(raw.stitch || {}) });
   if (st.kind === 'crochet') Object.assign(st, fixStitch({ ...st, kind: 'peyote', form: 'tube' }));
-  st.beads = Array.from({ length: stitchCount(st) }, (_, i) => fixColor((raw.stitch?.beads || [])[i] ?? 0));
+  // W ściegu puste miejsce (gumka) wycina kształt robótki.
+  st.beads = Array.from({ length: stitchCount(st) }, (_, i) => fixColor((raw.stitch?.beads || [])[i] ?? 0, true));
   p.stitch = st;
   const ball = fixBall({ ...base.ball, ...(raw.ball || {}) });
   ball.beads = Array.from({ length: ballShape(ball.shape).count }, (_, i) => fixColor((raw.ball?.beads || [])[i] ?? 0));
@@ -290,7 +291,7 @@ const strandMode = {
 };
 
 // Lustrzany koralik po drugiej stronie środka. W motywach odpowiada sobie rola:
-// płatek ↔ płatek, środek ↔ środek, koralik zwrotny ↔ koralik zwrotny.
+// płatek ↔ płatek, środek ↔ środek, koralik zwrotny ↔ koralik zwrotny, szypułka ↔ szypułka.
 function mirrorBead(s, id) {
   const inGroup = (i) => s.groups.find((g) => i >= g.start && i < g.start + g.n);
   const g = inGroup(id);
@@ -303,7 +304,7 @@ function mirrorBead(s, id) {
   if (twin === g) return g.kind === 'loop' ? g.start + g.n - 1 - (id - g.start) : null;
   const k = id - g.start;
   if (g.kind === 'daisy') return twin.start + (k === g.n - 1 ? k : g.n - 2 - k);
-  if (g.kind === 'dangle') return twin.start + k;
+  if (g.kind === 'dangle' || g.kind === 'berry') return twin.start + k;
   return twin.start + g.n - 1 - k;
 }
 
@@ -331,7 +332,7 @@ export function stitchThreadAt(p, ui) {
   const steps = stitchThread(p.stitch, stitchLayoutOf(p));
   if (!steps.length) return null;
   const i = Math.max(0, Math.min(steps.length - 1, ui?.threadStep ?? 0));
-  return { label: steps[i].label, index: i, count: steps.length, main: [steps[i].path], faint: i > 0 ? [steps[i - 1].path] : [], marks: [] };
+  return { label: steps[i].label, index: i, count: steps.length, main: [steps[i].path, ...(steps[i].extra || [])], faint: i > 0 ? [steps[i - 1].path] : [], marks: [] };
 }
 
 const stitchMode = {
@@ -343,7 +344,7 @@ const stitchMode = {
   },
   neighbors: (p, id) => stitchNeighbors(stitchLayoutOf(p), id),
   mirror: (p, id) => stitchMirror(p.stitch, id),
-  allBeads: (p) => p.stitch.beads,
+  allBeads: (p) => p.stitch.beads.filter((c) => c !== EMPTY),
 };
 
 // Zmiana ściegu, formy albo rozmiaru — wzór zostaje w tych samych rzędach i kolumnach.
@@ -574,7 +575,14 @@ export function dimensions(p) {
     return { label: 'Figurka', value: `${size(0).toFixed(0)} × ${size(1).toFixed(0)} × ${size(2).toFixed(0)} mm` };
   }
   if (p.mode === 'stitch') {
-    const { w, h } = stitchLayoutOf(p).sizeMM;
+    let { w, h } = stitchLayoutOf(p).sizeMM;
+    // Robótka płaska z wyciętym kształtem: mierzymy tylko miejsca z koralikami.
+    const used = stitchLayoutOf(p).cells.filter((c) => p.stitch.beads[c.id] !== EMPTY);
+    if (p.stitch.form !== 'tube' && used.length && used.length < p.stitch.beads.length) {
+      const span = (k) => Math.max(...used.map((c) => c[k])) - Math.min(...used.map((c) => c[k]));
+      w = span('u') + b.d;
+      h = span('v') + Math.max(b.d, b.h);
+    }
     return p.stitch.form === 'tube'
       ? { label: 'Rurka', value: `${(h / 10).toFixed(1)} cm × ⌀ ${w.toFixed(1)} mm` }
       : { label: 'Robótka', value: `${(w / 10).toFixed(1)} × ${(h / 10).toFixed(1)} cm` };
@@ -676,6 +684,15 @@ function motifLines(p, g, runText, range) {
   if (g.kind === 'dangle') {
     return [{ num, text: `${text(0, g.n - 1)}, zwrotny: ${text(g.n - 1)} → wróć igłą przez ${plural(g.n - 1, 'koralik', 'koraliki', 'koralików')} frędzla` }];
   }
+  if (g.kind === 'berry') {
+    const fruit = g.n - 1;
+    return [{
+      num,
+      text: fruit === 1
+        ? `szypułka: ${text(0, 1)}, owoc: ${text(1)} → wróć igłą przez szypułkę, owoc zawiśnie pod nią`
+        : `szypułka: ${text(0, 1)}, owoc: ${text(1)} → wróć igłą przez szypułkę i dociągnij — ${plural(fruit, 'koralik', 'koraliki', 'koralików')} zamknie się w kiść pod szypułką`,
+    }];
+  }
   return [{ num, text: `${text(0)} → zamknij pętelkę: przełóż igłę przez koralik przed pętelką` }];
 }
 
@@ -686,6 +703,7 @@ export function motifRoleText(p, i) {
   const r = roleInGroup(g, i);
   if (g.kind === 'daisy') return r.part === 'center' ? 'Stokrotka · środek' : `Stokrotka · płatek ${r.k + 1} z ${g.n - 1}`;
   if (g.kind === 'dangle') return r.part === 'turn' ? 'Frędzel · koralik zwrotny' : `Frędzel · ${r.k + 1} z ${g.n}`;
+  if (g.kind === 'berry') return r.part === 'stem' ? 'Owocek · szypułka' : `Owocek · ${r.k + 1} z ${g.n - 1}`;
   return `Pętelka · ${r.k + 1} z ${g.n}`;
 }
 

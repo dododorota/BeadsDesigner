@@ -106,6 +106,25 @@ test('długość, instrukcja i opis koralika w motywie', () => {
   assert.ok(text.includes('Stokrotka 6–12'));
   assert.ok(text.includes('przez 4. płatek'));
   assert.equal(motifRoleText(p, 11), 'Stokrotka · środek');
-  assert.equal(Object.keys(MOTIFS).length, 3);
+  assert.equal(Object.keys(MOTIFS).length, 4);
   assert.equal(groupAt(p.strand, 0), null);
+});
+
+test('owocek: szypułka na nitce, owoc pod nią, instrukcja i lustro', () => {
+  const p = strand(20);
+  const s = p.strand;
+  insertMotif(s, 3, 'berry', 3, { main: 8, accent: 2, side: 'out' });
+  assert.deepEqual(s.beads.slice(4, 8), [2, 8, 8, 8], 'najpierw szypułka, potem owoc');
+  assert.equal(roleInGroup(s.groups[0], 4).part, 'stem');
+  assert.equal(motifRoleText(p, 6), 'Owocek · 2 z 3');
+  const text = instructionsText(p);
+  assert.ok(text.includes('Owocek 5–8'));
+  assert.ok(text.includes('wróć igłą przez szypułkę'));
+  mirrorWithMotifs(s);
+  assert.equal(s.groups.length, 2);
+  const twin = s.groups[1];
+  assert.equal(s.beads[twin.start], 2, 'lustro też zaczyna od szypułki');
+  assert.equal(modeApi.strand.mirror({ ...p, strand: { ...s, symmetric: true } }, 4), twin.start);
+  const json = JSON.parse(JSON.stringify(p));
+  assert.equal(normalizeProject(json).strand.groups[0].kind, 'berry');
 });

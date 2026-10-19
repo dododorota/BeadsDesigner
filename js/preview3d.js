@@ -166,6 +166,25 @@ function motifBeads(p, g, at, tan) {
       const axis = dirOut.clone().multiplyScalar(Math.sin(alpha)).addScaledVector(tan, Math.cos(alpha));
       res.push({ pos: c.clone().addScaledVector(dir, R), axis, color: color(k) });
     }
+  } else if (g.kind === 'berry') {
+    // Szypułka na nitce, owoc zwisa pod nią kółkiem w płaszczyźnie naszyjnika:
+    // 3 koraliki to trójkąt (dwa u góry, jeden na dole), więcej — kiść w kółku.
+    const stem = type(0), fruit = type(1), n = g.n - 1;
+    const down = new THREE.Vector3(0, -1, 0), up = down.clone().negate();
+    const side = new THREE.Vector3(1, 0, 0);
+    res.push({ pos: at.clone(), axis: tan.clone(), color: color(0) });
+    if (n === 1) {
+      res.push({ pos: at.clone().addScaledVector(down, stem.d / 2 + fruit.h / 2), axis: down.clone(), color: color(1) });
+    } else {
+      const R = Math.max((n * fruit.d * 1.02) / (2 * Math.PI), fruit.d * 0.58);
+      const c = at.clone().addScaledVector(down, stem.d / 2 + fruit.d * 0.35 + R * Math.cos(Math.PI / n));
+      for (let k = 0; k < n; k++) {
+        const phi = (2 * Math.PI * (k + 0.5)) / n;
+        const pos = c.clone().addScaledVector(side, R * Math.sin(phi)).addScaledVector(up, R * Math.cos(phi));
+        const axis = side.clone().multiplyScalar(Math.cos(phi)).addScaledVector(up, -Math.sin(phi));
+        res.push({ pos, axis, color: color(k + 1) });
+      }
+    }
   } else {
     // Frędzel zwisa pionowo w dół, ostatni koralik (zwrotny) na końcu.
     const down = new THREE.Vector3(0, -1, 0);
@@ -236,7 +255,7 @@ function stitchBeads(lay, list) {
   }
   const midU = Math.max(...lay.cells.map((c) => c.u)) / 2;
   return lay.cells.map((c) => ({
-    pos: new THREE.Vector3(c.u - midU, c.v - midV, 0),
+    pos: new THREE.Vector3(c.u - midU, c.v - midV, c.z ?? 0),
     axis: new THREE.Vector3(Math.cos(c.a), Math.sin(c.a), 0),
     color: list[c.id],
   }));

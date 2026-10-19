@@ -7,7 +7,7 @@ Aktualizujemy go przy każdym etapie pracy (checkpoint), najnowsze wpisy są na 
 
 ---
 
-## Handover — stan na 2026-10-17
+## Handover — stan na 2026-10-19
 
 ### Checklista
 
@@ -24,8 +24,10 @@ Aktualizujemy go przy każdym etapie pracy (checkpoint), najnowsze wpisy są na 
 - [x] Ścieżka nici na schematach ściegów i figurek (commit Doroty `2885006`)
 - [x] Ścieg RAW / na krzyż płaski (koraliki na przemian poziomo i pionowo)
 - [x] Schemat naszyjnika: odstępy między wierszami i cienka nitka łącząca wiersze (commit Doroty `b223a4e`, razem z RAW)
-- [x] Podpowiedzi do nici w figurkach: ściągawka „Jak prowadzić nić na krzyż”, opis każdego oczka, przerywana linia przez koraliki,
-  które już są — 65 testów; **zmiany tylko lokalnie, bez commita**
+- [x] Podpowiedzi do nici w figurkach i ściągawka do wężyka (commity Doroty `582395f`, `0d0f507`)
+- [x] Z inspiracji (2026-10-19, noc): plecionka równoległa na drucik (żabka, krab, jaszczurka, ważka, pajączek,
+  rybka i ptaszek w dwóch warstwach), frędzle (agrafka), gumka w ściegu — wycięty kształt (rekin, serce, grzybek),
+  owocek na naszyjniku (truskawka, malina, winogrono, cytrynka) — 68 testów; **zmiany tylko lokalnie, bez commita**
 - [ ] Dorota zbiera bazę siatek figurek (zrzut schematu + zdjęcie gotowej figurki + liczba koralików) — każdą dodać jako nowy kształt
 
 **Do zrobienia — Dorota**
@@ -43,7 +45,7 @@ Aktualizujemy go przy każdym etapie pracy (checkpoint), najnowsze wpisy są na 
 **Git:** Claude nie robi commitów, gałęzi ani `git push` — wszystko zostaje lokalnie, Dorota commituje sama.
 
 **Jak zacząć jutro:** przeczytać tę sekcję, sprawdzić `git status` / `git log` (gałąź `main` śledzi `origin/main`),
-uruchomić `npm test` (65 testów) i zapytać Dorotę o wyniki testu na iPadzie oraz wybór z listy wyżej.
+uruchomić `npm test` (68 testów) i zapytać Dorotę o wyniki testu na iPadzie oraz wybór z listy wyżej.
 
 <details>
 <summary>Rozważane drogi instalacji (archiwum decyzji)</summary>
@@ -74,6 +76,7 @@ W `js/storage.js` zostało miejsce na zapis do plików, gdyby kiedyś powstała 
 | 3 | Naszyjnik z motywami: stokrotki (daisy chain), pętelki, frędzle; perły i koraliki ozdobne przez katalog koralików | ✅ |
 | 4 | Figurki w technice japońskiej (na krzyż): oczka z numerami, koraliki na krawędziach, instrukcja krok po kroku | ✅ |
 | 5 | Figurki z kilku kulek (głowa, łapki, ogonek) i paski z oczek (uszy, płetwy) | ✅ |
+| 6 | Z inspiracji (2026-10-19): plecionka równoległa na drucik, frędzle, wycięty kształt w ściegu, owocek na naszyjniku | ✅ |
 | — | Konstrukcje z rurek (kwiaty, gwiazdki, serduszka z trójkątów), import zdjęcia → wzór, katalog kolorów Miyuki/Toho z numerami | 💡 |
 
 Skąd ta kolejność: tablica inspiracji na Pinterest („biżu”) — najwięcej jest figurek 3D,
@@ -97,12 +100,16 @@ perełki 4 mm w „ścianach”).
 | Ścieg: RAW / na krzyż płaski — oczka z 4 koralików, poziome i pionowe na przemian; instrukcja i ścieżka nici oczko po oczku | ✅ |
 | Ścieg: herringbone skręcony (spirala) w rurce | ✅ |
 | Ścieg: CRAW i PRAW-3, -5, -6 (sznur z „klatek”) | ✅ |
+| Ścieg: plecionka równoległa na drucik — rzędy różnej długości wpisane liczbami („3+7 4 5”), nóżki z koralikiem zwrotnym, dwie warstwy (wierzch i spód → bryłka), 7 gotowych kształtów | ✅ |
+| Ścieg: frędzle (agrafka, zawieszka) — pionowe sznureczki, obrazek z kolorów, instrukcja frędzel po frędzlu | ✅ |
+| Gumka w ściegu: puste miejsce wycina kształt robótki (rekin, serce, żabka); instrukcja pisze „od k. miejsca” i „przerwa n”, wymiary bez pustych | ✅ |
 | Schemat ściegu: koraliki obrócone jak otwór (poziomo, pionowo, jodełka), rzędy numerowane jak w danym ściegu | ✅ |
 | Podgląd 3D ściegu: płaska robótka albo rurka; PRAW na prawdziwym wielokącie | ✅ |
 | Instrukcja ściegu rząd po rzędzie (kierunek pracy, start ladder / rzędy 1–2 peyote, klatki PRAW) | ✅ |
-| Ścieżka nici na schemacie rząd po rzędzie (◀ ▶): peyote, brick, herringbone, square, ladder — płasko i w rurkę; RAW oczko po oczku | ✅ (bez PRAW/CRAW i wężyka) |
+| Ścieżka nici na schemacie rząd po rzędzie (◀ ▶): peyote, brick, herringbone, square, ladder — płasko i w rurkę; RAW oczko po oczku; plecionka — dwie końcówki drucika w przeciwne strony i nóżki; frędzle | ✅ (bez PRAW/CRAW i wężyka) |
 | Odbicie lewo–prawo, powielanie rzędów/klatek, wypełnianie z zawijaniem w rurce | ✅ |
 | Motywy na naszyjniku: stokrotka (4–10 płatków + środek), pętelka (3–40), frędzel (2–40, z koralikiem zwrotnym) | ✅ |
+| Motyw „Owocek”: szypułka na nitce + owoc z 1–12 koralików pod nią (3 = truskawka/malina, 1 = cytrynka); igła wraca przez szypułkę | ✅ |
 | Narzędzie „Motyw” (M): stuknięcie w koralik wstawia za nim motyw, stuknięcie w motyw go usuwa | ✅ |
 | „Wstaw co N koralików” — cały daisy chain jednym przyciskiem; pętelki na zewnątrz, do środka albo na zmianę | ✅ |
 | Motywy na schemacie (obwódka + znaczek), w 3D (kwiatek, kółko, zwisający frędzel), w instrukcji (kiedy przełożyć igłę) | ✅ |
@@ -208,6 +215,8 @@ Wymagany iPadOS 16.4 lub nowszy (import map w Safari).
 - **Stokrotka** leży płasko w płaszczyźnie naszyjnika; środek ma zawsze jeden koralik.
 - **Pętelka** jest zaczepiona w jednym punkcie (bez koralików odstępu między jej końcami).
 - **Frędzel** zawsze zwisa pionowo w dół; nie ma rozgałęzień ani kwiatka na końcu.
+- **Owocek** to jedno kółko koralików pod szypułką (3 — trójkąt). Większe kiście winogron z kilku pięter i listki
+  przy szypułce (jak w cytrynkach z dwoma listkami) trzeba na razie dorobić frędzlem albo pętelką obok.
 - **Kolory w motywie** wstawiają się jako aktualny kolor + kolor środka/zwrotny; resztę maluje się zwykłym ołówkiem.
 - Nie ma jeszcze kwiatków z większą liczbą okrążeń, listków, kokardek ani motywów z rurek (pomysły z tablicy).
 
@@ -222,6 +231,14 @@ Wymagany iPadOS 16.4 lub nowszy (import map w Safari).
 - **Ścieżka nici** jest uproszczona: linia przez środki koralików (w ladder i brick przez ich końce), bez pętli
   i zawiązywania nowej nici. Square rysujemy jak square stitch — na krośnie nić idzie inaczej (przez cały rząd tam i z powrotem).
   PRAW/CRAW (nić w głąb klatek) i wężyk (szydełko) nie mają ścieżki.
+- **Plecionka równoległa:** rzędy są wyśrodkowane, a nóżki leżą prosto w linii rzędu (na prawdziwej robótce opadają
+  albo są zgięte). Nóżka ma jeden koralik zwrotny na końcu — stopy z 3 koralików (palce żabki) maluje się kolorem
+  na końcu nóżki. Oczy na słupkach (krab), skrzydła z pętelek (ważka) i kulka-odwłok (pajączek z dużym koralikiem)
+  to przybliżenia nóżkami. Przy dwóch warstwach nóżki wychodzą ze spodu; wierzch i spód mają tyle samo rzędów.
+  Długość drucika w instrukcji to szacunek dla koralików 11/0.
+- **Wycięty kształt (gumka w ściegu):** ścieżka nici dalej przechodzi przez puste miejsca; w peyote i brick instrukcja
+  nie mówi, jak zrobić ubytek (zmniejszenie) na brzegu — pokazuje tylko, które koraliki są w rzędzie.
+- **Frędzle** zaczynają się u góry; puste miejsce na górze frędzla oznacza gołą nitkę.
 
 ---
 
@@ -256,6 +273,11 @@ Wymagany iPadOS 16.4 lub nowszy (import map w Safari).
 - **Ścieżka nici = kroki instrukcji** (2026-10-17): `stitchThread` w `js/stitches.js` i `ballThread` w `js/ball.js`
   zwracają kroki o tych samych nazwach co linie instrukcji, z punktami w jednostkach schematu; schemat rysuje bieżący
   krok i blado poprzedni. W rurce linia przerywa się tam, gdzie schemat się zawija.
+- **Plecionka równoległa jako ścieg** (2026-10-19): `kind: 'parallel'` w `js/stitches.js`, kształt w polu `stitch.shape`
+  (tekst, np. `"3+7 4 5/3"`) i `stitch.layers` (1 albo 2). Numery koralików idą rzędami: wierzch, spód, lewa nóżka,
+  prawa nóżka (od tułowia do koralika zwrotnego). Zmiana kształtu przenosi kolory w tym samym rzędzie według odległości
+  od środka rzędu, więc dopisanie rzędu albo poszerzenie nie miesza obrazka. Tekst jest poprawiany do postaci kanonicznej.
+- **Puste miejsce w ściegu = EMPTY (-1)**, tak jak w figurce warstwami — zapis pliku bez zmian, stare pliki działają.
 - **Peyote liczy rzędy jak w peyote:** pole „Rzędów” i instrukcja podają przejścia igłą (2 na każdy koralik w kolumnie).
 - **Zmiana ściegu albo rozmiaru zachowuje wzór** w tych samych rzędach i kolumnach (nowe miejsca powtarzają istniejący wzór).
 - **Motyw = grupa kolejnych koralików na tej samej nitce** (`strand.groups: [{ start, n, kind, side, rev }]`).
@@ -278,6 +300,33 @@ Wymagany iPadOS 16.4 lub nowszy (import map w Safari).
 ---
 
 ## Dziennik
+
+### 2026-10-19 (noc) — Nowe techniki z inspiracji (lokalnie, bez commita)
+- Dorota wrzuciła ~400 inspiracji i poprosiła o dodanie, co się da; decyzje podejmowałam sama (Dorota spała).
+- Przegląd inspiracji — co już było i co doszło:
+
+  | Grupa w inspiracjach | Przykłady | Stan |
+  | --- | --- | --- |
+  | Figurki na krzyż (kulki) | żabki, aksolotl, świnka, meduza, rybka fugu, cukierek, lisek | ✅ było; czekamy na bazę siatek od Doroty |
+  | Plecionka równoległa na drucik | krab, homar, żabka-brelok, ważka, pająk, jaszczurka, mewa, rybki | ✅ **nowe** |
+  | Owocki i kwiatki na naszyjniku | truskawki/maliny/winogrona (schemat „1–4”), cytrynki, stokrotki | ✅ owocek **nowy**, stokrotki były |
+  | Płaskie ściegi z kształtem | rekin i żabka (brick), arbuz, grzybek, serce, broszki | ✅ gumka w ściegu **nowa** |
+  | Frędzle | broszka z rybką na agrafce, breloki | ✅ **nowe** |
+  | Wężyki i sznury | bead crochet, herringbone, peyote w rurce, lariaty z węzłem | ✅ było |
+  | Krosno | kwiatowe bransoletki | ✅ było (square/krosno) |
+  | Mini torebki z peyote, pudełko-serce | torebki z „granny squares” | 💡 kilka płaskich części — na razie osobno w ściegu |
+  | Konstrukcje z rurek | kwiaty i gwiazdki z bugli, plaster miodu, XO | 💡 |
+  | Siatka (netting), koronkowe chokery | niebiesko-pomarańczowy choker ze schematem | 💡 |
+
+- **Plecionka równoległa** (`parallel`): kształt wpisany liczbami albo z listy (żabka, krabik, jaszczurka, ważka,
+  pajączek, rybka i ptaszek w dwóch warstwach); gotowy kształt dostaje oczy w najciemniejszym kolorze palety.
+  Schemat: rzędy wyśrodkowane, przy dwóch warstwach „wierzch” i „spód” obok siebie; 3D: wierzch wypukły nad spodem.
+  Instrukcja: długość drucika, rząd 1 na środek drucika, rzędy i nóżki osobno; ścieżka: dwie końcówki w przeciwne strony.
+- **Frędzle** (`fringe`): sznureczki obok siebie od góry, instrukcja „Fr. 1, Fr. 2…”, ścieżka w dół i z powrotem.
+- **Gumka w ściegu**: puste miejsca wycinają kształt; instrukcja pomija puste („od 3. miejsca”, „przerwa 2”), wymiary liczone bez nich.
+- **Owocek** na naszyjniku: szypułka (kolor „Szypułka”) + owoc z aktualnego koloru; 3D — kiść zwisająca pod szypułką.
+- Testy: 68 (3 nowe). Sprawdzone w Chrome: żabka, rybka w dwóch warstwach, ścieżka drucika z nóżkami, poprawianie
+  wpisanego kształtu, brick z wyciętymi rogami (z lustrem), frędzle w 3D, owocki na schemacie i w 3D — bez błędów w konsoli.
 
 ### 2026-10-19 — Podpowiedzi do nici w figurkach (lokalnie, bez commita)
 - Prośba Doroty: na siatkach figurek nie wiadomo, jak ma iść nitka.

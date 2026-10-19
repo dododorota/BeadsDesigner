@@ -230,3 +230,60 @@ test('RAW płaski: lustro, sąsiedzi, powielanie i przenoszenie wzoru', () => {
   const left = lr.cells.filter((c) => c.x + 0.5 < lr.width * 0.4).map((c) => raw[c.id]);
   assert.ok(left.every((c) => c === 1), 'lewa połowa obrazka zostaje po lewej');
 });
+
+import { PARALLEL_PRESETS, parseParallel, parallelBead, parallelRows } from '../js/stitches.js';
+
+test('plecionka równoległa: kształt z tekstu, rzędy różnej długości, nóżki i dwie warstwy', () => {
+  assert.deepEqual(parseParallel('2, 3+4 x 5/3 1+1'), [
+    { top: 2, bottom: 2, leg: 0 }, { top: 3, bottom: 3, leg: 4 }, { top: 5, bottom: 3, leg: 0 }, { top: 1, bottom: 1, leg: 2 },
+  ]);
+  const st = fixStitch({ kind: 'parallel', shape: '2 3+4 5', form: 'tube' });
+  assert.equal(st.form, 'flat');
+  assert.equal(st.shape, '2 3+4 5');
+  assert.equal(st.rows, 3);
+  assert.equal(stitchCount(st), 2 + 3 + 8 + 5);
+  const l = stitchLayout(st, BEAD);
+  assert.equal(l.width, 3 + 8, 'najszerszy rząd z nóżkami');
+  // Rzędy wyśrodkowane: środek rzędu 1 (2 koraliki) nad środkiem rzędu 3 (5 koralików).
+  const mid = (ids) => ids.reduce((a, id) => a + l.cells[id].x, 0) / ids.length;
+  assert.equal(mid([0, 1]), mid([13, 14, 15, 16, 17]));
+  assert.equal(parallelBead(st, 8).part, 'legL', 'lewa nóżka: 5–8, koralik zwrotny na końcu');
+  assert.equal(parallelBead(st, 8).k, 3);
+  assert.equal(parallelBead(st, 9).part, 'legR', 'po lewej nóżce prawa');
+  // Lustro: koralik 0 ↔ 1, lewa nóżka ↔ prawa.
+  const m = { ...st, mirror: true };
+  assert.equal(stitchMirror(m, 0), 1);
+  assert.equal(stitchMirror(m, 5), 9);
+  // Dwie warstwy: każdy rząd ma wierzch i spód, wierzch wyżej w 3D.
+  const two = fixStitch({ kind: 'parallel', shape: '3 4/3', layers: 2 });
+  assert.equal(stitchCount(two), 3 + 3 + 4 + 3);
+  const l2 = stitchLayout(two, BEAD);
+  assert.ok(l2.cells.filter((c) => c.layer === 'top').every((c) => c.z > 0));
+  assert.ok(l2.cells.filter((c) => c.layer === 'bottom').every((c) => c.z < 0));
+  assert.deepEqual(l2.colLabels.map((c) => c.text), ['wierzch', 'spód']);
+  const lines = stitchInstructions(two, new Array(stitchCount(two)).fill(0), (r) => `${r.n}x`).filter((x) => x.num).map((x) => x.num);
+  assert.deepEqual(lines, ['Rz. 1 spód', 'Rz. 1 wierzch', 'Rz. 2 spód', 'Rz. 2 wierzch']);
+  // Każdy gotowy kształt da się wczytać i ma rząd z oczkami.
+  for (const pre of Object.values(PARALLEL_PRESETS)) {
+    const s = fixStitch({ kind: 'parallel', shape: pre.shape, layers: pre.layers });
+    assert.equal(s.shape, pre.shape, pre.name);
+    assert.ok(parallelRows(s)[pre.eyes]?.top >= 2, `${pre.name}: oczka`);
+  }
+});
+
+test('plecionka równoległa: zmiana kształtu zostawia wzór w swoim rzędzie, powielanie rzędów', () => {
+  const st = fixStitch({ kind: 'parallel', shape: '3 3' });
+  const beads = [1, 2, 1, 5, 6, 5];
+  const wider = fixStitch({ ...st, shape: '5 3 3' });
+  const out = remapBeads(st, beads, wider);
+  assert.deepEqual(out.slice(0, 5), [1, 1, 2, 1, 1], 'szerszy rząd 1: środek zostaje na środku');
+  assert.deepEqual(out.slice(5, 8), [5, 6, 5]);
+  assert.deepEqual(out.slice(8), [1, 2, 1], 'nowy rząd powtarza wzór od początku');
+  const rep = [1, 2, 1, 5, 6, 5, 0, 0, 0, 0, 0];
+  const st3 = fixStitch({ kind: 'parallel', shape: '3 3 5' });
+  repeatStitchRows(st3, rep, 1);
+  assert.deepEqual(rep, [1, 2, 1, 1, 2, 1, 1, 1, 2, 1, 1]);
+  // Inny ścieg ↔ plecionka: obrazek przenosi się według miejsca na schemacie.
+  const fromPeyote = remapBeads(fixStitch({ kind: 'square', width: 3, rows: 2 }), [1, 1, 1, 2, 2, 2], st);
+  assert.deepEqual(fromPeyote, [1, 1, 1, 2, 2, 2]);
+});

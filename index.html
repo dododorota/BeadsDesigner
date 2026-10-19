@@ -144,7 +144,13 @@
           <select id="stitchForm"><option value="flat">Płaski</option><option value="tube">Rurka</option></select>
         </label>
       </div>
-      <div class="field-row">
+      <div class="parallel-fields" id="parallelFields">
+        <label class="field"><span>Gotowy kształt</span><select id="parallelPreset"></select></label>
+        <label class="field"><span>Rzędy od dołu (koralików w rzędzie)</span><input id="parallelShape" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="done"></label>
+        <p class="hint">Liczby oddzielone spacją, od rzędu 1. „4+6” — rząd z 4 koralików i nóżki po 6 z obu stron. Przy dwóch warstwach „5/4” — 5 na wierzchu i 4 na spodzie.</p>
+        <label class="check"><input id="parallelLayers" type="checkbox"> Dwie warstwy — bryłka (wierzch i spód)</label>
+      </div>
+      <div class="field-row" id="stitchSizeRow">
         <label class="field" id="stitchWidthField"><span id="stitchWidthLabel">W rzędzie</span><input id="stitchWidth" type="number" min="2" max="60" step="1"></label>
         <label class="field" id="stitchSidesField"><span>Boków</span>
           <select id="stitchSides"><option value="3">3 · PRAW-3</option><option value="4">4 · CRAW</option><option value="5">5 · PRAW-5</option><option value="6">6 · PRAW-6</option></select>
@@ -268,7 +274,7 @@
         <button type="button" class="tool" data-tool="motif" data-for="strand ball" title="Motyw / dodatek (M) — stuknij koralik, żeby coś przy nim doczepić; stuknij jeszcze raz, żeby usunąć" aria-label="Motyw lub dodatek">
           <svg viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="6" r="3"/><circle cx="17.2" cy="9.8" r="3"/><circle cx="15.2" cy="16" r="3"/><circle cx="8.8" cy="16" r="3"/><circle cx="6.8" cy="9.8" r="3"/></g><circle cx="12" cy="11.6" r="2.2" fill="currentColor"/></svg>
         </button>
-        <button type="button" class="tool" data-tool="eraser" data-for="figure" title="Gumka (E)" aria-label="Gumka">
+        <button type="button" class="tool" data-tool="eraser" data-for="figure stitch" title="Gumka (E) — w ściegu zostawia puste miejsce, żeby wyciąć kształt (rybka, serce, żabka)" aria-label="Gumka">
           <svg viewBox="0 0 24 24"><path d="M8.5 19h11M5.2 14.6l8.4-8.4a2 2 0 012.8 0l2.4 2.4a2 2 0 010 2.8L11 19H8.4l-3.2-3.2a.8.8 0 010-1.2zM9.5 10.3l5.2 5.2" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
         </button>
       </div>

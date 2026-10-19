@@ -9,7 +9,7 @@ import {
 import { ChartEditor } from './chart.js';
 import { Preview3D } from './preview3d.js';
 import { Library, openBackend, parseImport } from './storage.js';
-import { STITCHES, hasThread, plural, rowsFromVisible, visibleRows } from './stitches.js';
+import { PARALLEL_PRESETS, STITCHES, hasThread, parallelBead, parallelRows, plural, rowsFromVisible, visibleRows } from './stitches.js';
 import { MOTIFS, clearMotifs, fillMotifs, groupAt, insertMotif, removeMotifAt } from './motifs.js';
 import {
   BALL_SHAPES, EXTRA_KINDS, STRETCH, addPart, ballShape, ballThreadTip, extraAt, extraMirrorIndex, extraSize, locate, partAt, partJoin, partName,
@@ -342,7 +342,13 @@ function renderHover() {
   } else if (project.mode === 'stitch') {
     const c = stitchLayoutOf(project).cells[id];
     const st = project.stitch;
-    if (st.kind === 'praw') {
+    if (st.kind === 'parallel') {
+      const b = parallelBead(st, id);
+      const layer = st.layers === 2 ? ` ${b.layer === 'top' ? 'wierzch' : 'spód'}` : '';
+      const where = b.part === 'body' ? `koralik ${b.k + 1} z ${b.n}`
+        : `${b.part === 'legL' ? 'lewa' : 'prawa'} nóżka, ${b.k === b.n - 1 ? 'koralik zwrotny' : `${b.k + 1} z ${b.n}`}`;
+      info.textContent = `Rząd ${b.row + 1}${layer}, ${where} · ${name}`;
+    } else if (st.kind === 'praw') {
       const unit = Math.floor(c.row / 2) + (c.part === 'wall' ? 1 : 0);
       info.textContent = `${c.part === 'wall' ? `Klatka ${unit}, ściana` : unit === 0 ? 'Pierwsza podłoga' : `Klatka ${unit}, sufit`} ${c.col + 1} · ${name}`;
     } else {
@@ -351,6 +357,10 @@ function renderHover() {
           ? (c.level === 0 ? `Rząd 1, oczko ${c.col + 1}, dół` : `Rząd ${c.row}, oczko ${c.col + 1}, góra`)
           : `Rząd ${c.row + 1}, ${c.col === 0 ? 'lewy brzeg' : c.col === st.width ? 'prawy brzeg' : `bok między oczkami ${c.col} i ${c.col + 1}`}`;
         info.textContent = `${where} · ${name}`;
+        return;
+      }
+      if (st.kind === 'fringe') {
+        info.textContent = `Frędzel ${c.col + 1}, koralik ${c.row + 1} od góry · ${name}`;
         return;
       }
       const row = st.kind === 'peyote' ? 2 * c.row + 1 + (c.col % 2) : c.row + 1;
@@ -373,7 +383,7 @@ function schedulePreview() {
     previewQueued = false;
     const p = project;
     const st = p.stitch;
-    const fitKey = [p.mode, p.palette.map((c) => c.bead).join(), baseBead(p).label, p.ball.shape, p.ball.sy, p.ball.sz, p.ball.parts.map((q) => [q.parent, q.at, q.shape, q.sy, q.sz].join(':')).join(';'), st.kind, st.form, st.width, st.rows, st.sides, st.twist, p.strand.count, p.strand.pendant, p.tube.around, p.tube.rows, p.figure.w, p.figure.d, p.figure.h].join('|');
+    const fitKey = [p.mode, p.palette.map((c) => c.bead).join(), baseBead(p).label, p.ball.shape, p.ball.sy, p.ball.sz, p.ball.parts.map((q) => [q.parent, q.at, q.shape, q.sy, q.sz].join(':')).join(';'), st.kind, st.form, st.width, st.rows, st.sides, st.twist, st.kind === 'parallel' ? `${st.shape}/${st.layers}` : '', p.strand.count, p.strand.pendant, p.tube.around, p.tube.rows, p.figure.w, p.figure.d, p.figure.h].join('|');
     preview.update(p, ui, fitKey);
   });
 }
@@ -406,7 +416,7 @@ function renderControls() {
   ui.layer = Math.max(0, Math.min(ui.layer, p.figure.h - 1));
   $('layerLabel').textContent = `Warstwa ${ui.layer + 1}/${p.figure.h}`;
   $('buildView').checked = ui.buildView;
-  if ((p.mode !== 'figure' && ui.tool === 'eraser') || (!['strand', 'ball'].includes(p.mode) && ui.tool === 'motif')) setTool('pencil');
+  if ((!['figure', 'stitch'].includes(p.mode) && ui.tool === 'eraser') || (!['strand', 'ball'].includes(p.mode) && ui.tool === 'motif')) setTool('pencil');
   document.title = `${p.name} · Beads Designer`;
 }
 
@@ -487,17 +497,23 @@ function renderMotifControls() {
 
 function renderStitchControls() {
   const st = project.stitch;
-  const praw = st.kind === 'praw', tube = st.form === 'tube';
+  const praw = st.kind === 'praw', tube = st.form === 'tube', parallel = st.kind === 'parallel';
   $('stitchKind').value = st.kind;
   $('stitchForm').value = st.form;
-  $('stitchForm').disabled = praw || st.kind === 'raw';
+  $('stitchForm').disabled = praw || st.kind === 'raw' || parallel;
+  $('stitchSizeRow').hidden = parallel;
+  $('parallelFields').hidden = !parallel;
+  if (parallel) {
+    if (document.activeElement !== $('parallelShape')) $('parallelShape').value = st.shape;
+    $('parallelLayers').checked = st.layers === 2;
+  }
   $('stitchWidthField').hidden = praw;
   $('stitchSidesField').hidden = !praw;
   $('stitchSides').value = String(st.sides);
   $('stitchWidthLabel').textContent = tube ? 'Na obwodzie' : STITCHES[st.kind].widthLabel;
   $('stitchWidth').step = st.kind === 'herringbone' ? 2 : 1;
   setNumber('stitchWidth', st.width);
-  $('stitchRowsLabel').textContent = praw ? 'Klatek' : st.kind === 'raw' ? 'Rzędów oczek' : 'Rzędów';
+  $('stitchRowsLabel').textContent = praw ? 'Klatek' : st.kind === 'raw' ? 'Rzędów oczek' : st.kind === 'fringe' ? 'Koralików we frędzlu' : 'Rzędów';
   setNumber('stitchRows', visibleRows(st));
   $('stitchTwistField').hidden = !(st.kind === 'herringbone' && tube);
   $('stitchTwist').checked = st.twist;
@@ -516,7 +532,9 @@ function renderStitchControls() {
   }
   $('stitchThreadHint').textContent = !thread
     ? 'Dla tego ściegu ścieżki nici jeszcze nie rysujemy — kolejność opisuje instrukcja.'
-    : 'Gruba linia ze strzałkami: którędy idzie nić w tym rzędzie (jak w instrukcji). Cienka: poprzedni rząd.';
+    : parallel
+      ? 'Dwie linie ze strzałkami to dwie końcówki drucika: przechodzą przez ten sam rząd w przeciwne strony. Przy nóżce — na zewnątrz do koralika zwrotnego i z powrotem. Cienka: poprzedni krok.'
+      : 'Gruba linia ze strzałkami: którędy idzie nić w tym rzędzie (jak w instrukcji). Cienka: poprzedni rząd.';
 }
 
 // Przejście do innego rzędu na ścieżce nici — schemat przewija się do niego.
@@ -615,7 +633,7 @@ function setTool(tool) {
 function setMode(mode) {
   if (project.mode === mode) return;
   project.mode = mode;
-  if ((mode !== 'figure' && ui.tool === 'eraser') || (!['strand', 'ball'].includes(mode) && ui.tool === 'motif')) setTool('pencil');
+  if ((!['figure', 'stitch'].includes(mode) && ui.tool === 'eraser') || (!['strand', 'ball'].includes(mode) && ui.tool === 'motif')) setTool('pencil');
   changed({ structure: true, fit: true });
 }
 
@@ -812,6 +830,35 @@ function bind() {
   $('stitchRows').addEventListener('change', (e) => stitchChange({ rows: rowsFromVisible(project.stitch.kind, e.target.value) }));
   $('stitchTwist').addEventListener('change', (e) => stitchChange({ twist: e.target.checked }));
   $('stitchMirror').addEventListener('change', (e) => { project.stitch.mirror = e.target.checked; changed(); });
+  // Plecionka równoległa: kształt z listy rzędów albo gotowy (żabka, krab…).
+  $('parallelPreset').innerHTML = '<option value="">— wybierz, żeby zacząć od gotowego —</option>'
+    + Object.entries(PARALLEL_PRESETS).map(([k, v]) => `<option value="${k}">${v.name}</option>`).join('');
+  $('parallelPreset').addEventListener('change', (e) => {
+    const pre = PARALLEL_PRESETS[e.target.value];
+    e.target.value = '';
+    if (!pre) return;
+    snapshot();
+    setStitch(project, { shape: pre.shape, layers: pre.layers, mirror: true });
+    // Gotowy kształt zaczyna się w jednym kolorze, z czarnymi oczkami na brzegach rzędu z oczkami.
+    const st = project.stitch;
+    st.beads.fill(ui.color);
+    const lum = (hex) => { const n = parseInt(hex.slice(1), 16); return 0.3 * (n >> 16) + 0.59 * ((n >> 8) & 255) + 0.11 * (n & 255); };
+    let black = -1, darkest = 70;
+    project.palette.forEach((c, i) => { if (i !== ui.color && lum(c.hex) < darkest) { darkest = lum(c.hex); black = i; } });
+    const row = parallelRows(st)[pre.eyes];
+    if (row && black >= 0 && row.top > 1) { st.beads[row.top0] = black; st.beads[row.top0 + row.top - 1] = black; }
+    changed({ structure: true, fit: true });
+    toast(`${pre.name}: zmieniaj liczby rzędów albo maluj koraliki`);
+  });
+  $('parallelShape').addEventListener('change', (e) => {
+    const before = project.stitch.shape;
+    snapshot();
+    setStitch(project, { shape: e.target.value });
+    if (project.stitch.shape !== e.target.value.trim().replace(/\s+/g, ' ')) toast('Poprawiony kształt: ' + project.stitch.shape);
+    if (project.stitch.shape === before) renderControls();
+    changed({ structure: true, fit: true });
+  });
+  $('parallelLayers').addEventListener('change', (e) => stitchChange({ layers: e.target.checked ? 2 : 1 }));
   $('stitchRepeat').addEventListener('click', () => {
     snapshot();
     repeatPattern(project, rowsFromVisible(project.stitch.kind, $('stitchRepeatLen').value));
@@ -941,7 +988,7 @@ function bind() {
     if (k === 'b' || k === 'p') setTool('pencil');
     else if (k === 'g' || k === 'f') setTool('fill');
     else if (k === 'i') setTool('picker');
-    else if (k === 'e' && project.mode === 'figure') setTool('eraser');
+    else if (k === 'e' && ['figure', 'stitch'].includes(project.mode)) setTool('eraser');
     else if (k === 'm' && ['strand', 'ball'].includes(project.mode)) setTool('motif');
     else if (k === '+' || k === '=') { chart.setZoom(chart.zoom * 1.2); renderZoom(); }
     else if (k === '-') { chart.setZoom(chart.zoom / 1.2); renderZoom(); }

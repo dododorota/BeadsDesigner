@@ -359,7 +359,7 @@ export class ChartEditor {
     }
     g.textAlign = 'center';
     for (const l of layout.colLabels) {
-      if (skip(l.x + 1)) continue;
+      if (!l.always && skip(l.x + 1)) continue;
       g.fillText(l.text, MARGIN.left + (l.x + 0.5) * S, MARGIN.top - 12);
     }
 
@@ -484,7 +484,7 @@ export class ChartEditor {
 
     // Motywy na naszyjniku: obwódka wokół ich koralików i znaczek rodzaju.
     if (layout.bands?.length) {
-      const glyph = { daisy: '✿', loop: '◯', dangle: '↓' };
+      const glyph = { daisy: '✿', loop: '◯', dangle: '↓', berry: '♣' };
       g.save();
       g.strokeStyle = tok('--accent');
       g.lineWidth = 2;

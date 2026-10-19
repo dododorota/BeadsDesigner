@@ -7,12 +7,15 @@
 //   side — pętelka na zewnątrz ('out') albo do środka naszyjnika ('in'),
 //   rev  — pętelka idzie w drugą stronę (lustrzane odbicie prawej połowy naszyjnika).
 // Kolejność nawlekania w motywie jest zawsze ta sama: stokrotka — płatki, potem środek;
-// frędzel — od góry do koralika zwrotnego.
+// frędzel — od góry do koralika zwrotnego; owocek — szypułka, potem owoc.
 
 export const MOTIFS = {
   daisy: { name: 'Stokrotka', sizeLabel: 'Płatków', size: [4, 10], def: 6, accentLabel: 'Środek' },
   loop: { name: 'Pętelka', sizeLabel: 'Koralików', size: [3, 40], def: 12, accentLabel: null },
   dangle: { name: 'Frędzel', sizeLabel: 'Koralików', size: [2, 40], def: 6, accentLabel: 'Koralik zwrotny' },
+  // Owocek (truskawka, malina, winogrono, cytrynka): szypułka zostaje na nitce, a pod nią
+  // wisi kiść z kilku koralików — igła wraca przez szypułkę i owoc się zamyka.
+  berry: { name: 'Owocek', sizeLabel: 'Koralików owocu', size: [1, 12], def: 3, accentLabel: 'Szypułka' },
 };
 
 export const MAX_STRAND = 2000;
@@ -23,13 +26,14 @@ const clampSize = (kind, v) => {
 };
 
 // Ile koralików zajmuje motyw: stokrotka ma jeszcze środek.
-export const motifBeads = (kind, size) => (kind === 'daisy' ? size + 1 : size);
+export const motifBeads = (kind, size) => (kind === 'daisy' || kind === 'berry' ? size + 1 : size);
 
 // Rola koralika w grupie: płatek / środek stokrotki, koralik / zwrotny frędzla.
 export function roleInGroup(g, i) {
   const k = i - g.start;
   if (g.kind === 'daisy') return k === g.n - 1 ? { part: 'center', k } : { part: 'petal', k };
   if (g.kind === 'dangle') return k === g.n - 1 ? { part: 'turn', k } : { part: 'bead', k };
+  if (g.kind === 'berry') return k === 0 ? { part: 'stem', k } : { part: 'fruit', k: k - 1 };
   return { part: 'bead', k };
 }
 
@@ -62,6 +66,7 @@ export function insertMotif(s, after, kind, size, colors) {
   const beads = Array.from({ length: n }, (_, k) => {
     if (kind === 'daisy' && k === n - 1) return colors.accent;
     if (kind === 'dangle' && k === n - 1) return colors.accent;
+    if (kind === 'berry' && k === 0) return colors.accent;
     return colors.main;
   });
   s.beads.splice(at, 0, ...beads);
@@ -137,7 +142,7 @@ export function mirrorWithMotifs(s) {
   const mirrored = left.map((g) => {
     const ms = s.count - g.start - g.n;
     const src = s.beads.slice(g.start, g.start + g.n);
-    // Lustro odwraca kolejność, ale stokrotkę i frędzel nawleka się zawsze tak samo.
+    // Lustro odwraca kolejność, ale stokrotkę, frędzel i owocek nawleka się zawsze tak samo.
     if (g.kind === 'daisy') src.splice(0, g.n - 1, ...src.slice(0, g.n - 1).reverse());
     else if (g.kind === 'loop') src.reverse();
     s.beads.splice(ms, g.n, ...src);
@@ -168,6 +173,10 @@ export function strandSlots(s, beadOf) {
     if (g.kind === 'daisy') {
       const center = beadOf(s.beads[g.start + g.n - 1]);
       len = 2 * (center.d / 2 + first.d / 2) + first.d;
+    } else if (g.kind === 'berry') {
+      // Szypułka leży na nitce; owoc pod nią jest trochę szerszy.
+      const fruit = beadOf(s.beads[g.start + 1]);
+      len = Math.max(first.h, fruit.d * (g.n > 2 ? 1.6 : 1));
     } else {
       len = first.d * (g.kind === 'loop' ? 1.2 : 1);
     }
