@@ -91,6 +91,7 @@ perełki 4 mm w „ścianach”).
 | Naszyjnik — pojedynczy sznurek, symetria od środka, powielanie wzoru, zawieszka-figurka | ✅ |
 | Schemat naszyjnika: wiersze z odstępami, cienka nitka z końca wiersza do początku następnego (to jedna nitka, nie rzędy) | ✅ |
 | Wężyk szydełkowy (bead crochet), 3–16 na obwodzie, spirala z przesunięciem o pół koralika | ✅ (od 2026-10-17 liczony przez silnik ściegów) |
+| Wężyk: ściągawka „Jak zrobić wężyk szydełkowy” w panelu | ✅ |
 | Figurka warstwami (woksele) — tryb „Warstwy”, zostaje dla starszych projektów | ✅ |
 | Ścieg: peyote, brick, herringbone, square/krosno, ladder — płasko albo w rurkę | ✅ |
 | Ścieg: RAW / na krzyż płaski — oczka z 4 koralików, poziome i pionowe na przemian; instrukcja i ścieżka nici oczko po oczku | ✅ |
@@ -285,6 +286,8 @@ Wymagany iPadOS 16.4 lub nowszy (import map w Safari).
   koralików i ostatniego oczka (wypchanie, zawiązanie).
 - Schemat: przerywana linia przez koraliki, które już są; rozwijana ściągawka „Jak prowadzić nić na krzyż” w panelu.
 - Testy: 65 (1 nowy). Sprawdzone w Chrome: oczko 10 przykładowej żabki (opis, schemat, ściągawka).
+- Wężyk: ściągawka „Jak zrobić wężyk szydełkowy” (nawlekanie od końca, łańcuszek startowy, oczko ścisłe z koralikiem,
+  spirala, zakończenie) i wyjaśnienie, że ukośny pasek przerw na schemacie to szew spirali, nie dziura w wężyku.
 
 ### 2026-10-19 — Schemat naszyjnika czytelniejszy (lokalnie, bez commita)
 - Pytanie Doroty: czemu schemat naszyjnika ma „rzędy”, skoro to jeden sznurek. Schemat łamie nitkę co „W rzędzie schematu”
